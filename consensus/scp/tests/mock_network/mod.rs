@@ -425,11 +425,12 @@ impl SimulatedNode {
                                 .cloned()
                                 .collect();
 
-                            let slot_values = externalized_values.len();
+                            let current_slot_values = externalized_values.len();
 
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
                                 .expect("thread_shared_data lock failed");
+
                             locked_shared_data.ledger.push(externalized_values);
 
                             let total_values = locked_shared_data
@@ -439,14 +440,24 @@ impl SimulatedNode {
                             drop(locked_shared_data);
 
                             if total_values > 1000 {
+                                let mut externalized_count = 0;
+                                for i in 0..current_slot {
+                                    externalized_count += thread_local_node
+                                        .lock()
+                                        .expect("thread_local_node lock failed when getting externalized_values")
+                                        .get_externalized_values(i as SlotIndex)
+                                        .len();
+                                }
+
                                 log::error!(
                                     logger,
-                                    "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
+                                    "(  ledger ) node {} slot {} : {} new, {} in shared_data, {} pending, {} in slot",
                                     node_id,
                                     current_slot as SlotIndex,
-                                    slot_values,
+                                    current_slot_values,
                                     total_values,
                                     remaining_values.len(),
+                                    externalized_count,
                                 );
                             }
 
@@ -455,7 +466,7 @@ impl SimulatedNode {
                                 "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
                                 node_id,
                                 current_slot as SlotIndex,
-                                slot_values,
+                                current_slot_values,
                                 total_values,
                                 remaining_values.len(),
                             );
