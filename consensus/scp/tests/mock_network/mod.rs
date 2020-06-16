@@ -451,6 +451,20 @@ impl SimulatedNode {
                             let externalized_values_as_set: HashSet<String> =
                                 externalized_values.iter().cloned().collect();
 
+                            let unexpected_values: HashSet<String> = externalized_values_as_set
+                                .difference(&nominated_values)
+                                .cloned()
+                                .collect();
+                            if !unexpected_values.is_empty() {
+                                log::error!(
+                                    logger,
+                                    "node {} slot {} : unexpected values {:?}",
+                                    node_id,
+                                    current_slot as SlotIndex,
+                                    unexpected_values,
+                                );
+                            }
+
                             let remaining_values: HashSet<String> = pending_values
                                 .difference(&externalized_values_as_set)
                                 .cloned()
