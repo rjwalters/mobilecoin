@@ -42,7 +42,7 @@ pub struct TestOptions {
     /// Approximate rate that values are submitted to nodes.
     pub submissions_per_sec: u64,
 
-    /// We allow only a single proposal per slot, with up to this many values.
+    /// We nominate up to this many values from our pending set per slot.
     pub max_pending_values_to_nominate: usize,
 
     /// The total allowed testing time before forcing a panic
@@ -380,11 +380,13 @@ impl SimulatedNode {
                                         .expect("thread_local_node lock failed when nominating value")
                                         .nominate(
                                             current_slot as SlotIndex,
-                                            BTreeSet::from_iter(values_to_nominate
-                                                .iter()
-                                                .cloned()
-                                                .collect::<HashSet<String>>()
-                                            )
+                                            // remove optimization
+                                            BTreeSet::from_iter(values)
+                                            //BTreeSet::from_iter(values_to_nominate
+                                            //    .iter()
+                                            //    .cloned()
+                                            //    .collect::<HashSet<String>>()
+                                            //)
                                         )
                                         .expect("node.nominate() failed")
                                 };
