@@ -389,7 +389,7 @@ impl SimulatedNode {
                                     total_broadcasts += 1;
                                 }
 
-                                for v in values.iter().cloned() {
+                                for v in values_to_nominate.iter().cloned() {
                                     nominated_values.insert(v);
                                 }
                             }
