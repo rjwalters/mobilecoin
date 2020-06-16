@@ -391,6 +391,7 @@ impl SimulatedNode {
                                         )
                                         .expect("node.nominate() failed")
                                 };
+
                                 for v in values_to_nominate.iter().cloned() {
                                     nominated_values.insert(v);
                                 }
@@ -398,29 +399,26 @@ impl SimulatedNode {
                                 if let Some(outgoing_msg) = outgoing_msg {
                                     (broadcast_msg_fn)(logger.clone(), outgoing_msg);
                                     total_broadcasts += 1;
-                                    continue 'main_loop;
                                 }
                             }
                         }
 
                         // Process incoming consensus message.
-                        if !incoming_msgs.is_empty() {
-                            for msg in incoming_msgs.iter() {
-                                let outgoing_msg: Option<Msg<String>> = {
-                                    thread_local_node
-                                        .lock()
-                                        .expect("thread_local_node lock failed when handling msg")
-                                        .handle(msg)
-                                        .expect("node.handle_msg() failed")
-                                };
+                        for msg in incoming_msgs.iter() {
+                            let outgoing_msg: Option<Msg<String>> = {
+                                thread_local_node
+                                    .lock()
+                                    .expect("thread_local_node lock failed when handling msg")
+                                    .handle(msg)
+                                    .expect("node.handle_msg() failed")
+                            };
 
-                                if let Some(outgoing_msg) = outgoing_msg {
-                                    (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                                    total_broadcasts += 1;
-                                }
+                            if let Some(outgoing_msg) = outgoing_msg {
+                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                                total_broadcasts += 1;
                             }
-                            continue 'main_loop;
                         }
+
 
                         // Process timeouts (for all slots)
                         let timeout_msgs: Vec<Msg<String>> = {
@@ -431,13 +429,11 @@ impl SimulatedNode {
                                 .into_iter()
                                 .collect()
                         };
-                        if !timeout_msgs.is_empty() {
-                            for outgoing_msg in timeout_msgs {
-                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                                total_broadcasts += 1;
-                            }
-                            continue 'main_loop;
+                        for outgoing_msg in timeout_msgs {
+                            (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                            total_broadcasts += 1;
                         }
+
 
                         // See if we're done with the current slot
                         let externalized_values: Vec<String> = {
@@ -470,7 +466,7 @@ impl SimulatedNode {
                                 .ledger
                                 .iter()
                                 .fold(0, |acc, block| acc + block.len());
-                            drop(locked_shared_data);
+
 
                             if total_values > expected_externalized_values {
                                 log::error!(
@@ -484,7 +480,27 @@ impl SimulatedNode {
                                     total_externalized_values,
                                     expected_externalized_values,
                                 );
+
+                                // find which two blocks have the duplicate
+                                let mut previous_block:Vec<String> = Vec::new();
+                                for (block_index, block) in locked_shared_data.ledger.iter().enumerate() {
+                                    for value in block {
+                                        if previous_block.contains(value) {
+                                            log::error!(
+                                                logger,
+                                                "block {} and block {} both contain {}",
+                                                block_index,
+                                                block_index-1,
+                                                value,
+                                            );
+                                        }
+                                    }
+                                    previous_block = block;
+                                }
+
                             }
+
+                            drop(locked_shared_data);
 
                             log::trace!(
                                 logger,
