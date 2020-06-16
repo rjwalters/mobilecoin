@@ -20,9 +20,9 @@ use std::{
 
 // we are using a fixed number of iterations for the optimizer
 // this could be improved someday by observing the runtime settle
-const OPTIMIZER_ITERATIONS: usize = 30;
+const OPTIMIZER_ITERATIONS: usize = 1000;
 
-const VALUES_TO_SUBMIT: usize = 500;
+const VALUES_TO_SUBMIT: usize = 1000;
 const ALLOWED_TEST_TIME: Duration = Duration::from_secs(600);
 
 // Optimization range limits
