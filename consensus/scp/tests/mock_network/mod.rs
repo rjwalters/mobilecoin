@@ -211,13 +211,25 @@ impl SimulatedNetwork {
             .send_value(value);
     }
 
-    fn get_shared_data(&self, node_id: &NodeID) -> SimulatedNodeSharedData {
+    fn get_ledger(&self, node_id: &NodeID) -> Vec<Vec<String>> {
         self.nodes_shared_data
             .get(node_id)
             .expect("could not find node_id in nodes_map")
             .lock()
             .expect("lock failed on shared_data getting clone")
+            .ledger
             .clone()
+    }
+
+    fn get_ledger_size(&self, node_id: &NodeID) -> usize {
+        self.nodes_shared_data
+            .get(node_id)
+            .expect("could not find node_id in nodes_map")
+            .lock()
+            .expect("lock failed on shared_data getting clone")
+            .ledger
+            .iter()
+            .fold(0, |acc, block| acc + block.len())
     }
 
     fn broadcast_msg(
@@ -255,22 +267,13 @@ enum SimulatedNodeTaskMessage {
     StopTrigger,
 }
 
-// SimulatedNode data shared between threads
+// Node data shared between threads
 #[derive(Clone)]
 struct SimulatedNodeSharedData {
     pub ledger: Vec<Vec<String>>,
 }
 
-impl SimulatedNodeSharedData {
-    fn get_all_values(&self) -> Vec<String> {
-        self.ledger.iter().flatten().cloned().collect()
-    }
-
-    fn total_values(&self) -> usize {
-        self.ledger.iter().flatten().count()
-    }
-}
-
+// A simulated validator node
 struct SimulatedNode {
     local_node: Arc<Mutex<Node<String, test_utils::TransactionValidationError>>>,
     sender: crossbeam_channel::Sender<SimulatedNodeTaskMessage>,
@@ -447,7 +450,11 @@ impl SimulatedNode {
                                 .lock()
                                 .expect("thread_shared_data lock failed");
                             locked_shared_data.ledger.push(externalized_values);
-                            let total_values = locked_shared_data.total_values();
+
+                            let total_values = locked_shared_data
+                                .ledger
+                                .iter()
+                                .fold(0, |acc, block| acc + block.len());
                             drop(locked_shared_data);
 
                             log::trace!(
@@ -581,7 +588,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
 
     // check that all ledgers start empty
     for node_id in node_ids.iter() {
-        assert!(simulation.get_shared_data(&node_id).total_values() == 0);
+        assert!(simulation.get_ledger_size(&node_id) == 0);
     }
 
     // push values
@@ -646,7 +653,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                 panic!("test failed due to timeout");
             }
 
-            let num_externalized_values = simulation.get_shared_data(&node_id).total_values();
+            let num_externalized_values = simulation.get_ledger_size(&node_id);
             if num_externalized_values == num_pushed_values {
                 log::info!(
                     simulation.logger,
@@ -683,10 +690,8 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
         }
 
         let externalized_values_hashset = simulation
-            .get_shared_data(&node_id)
-            .get_all_values()
-            .iter()
-            .cloned()
+            .get_ledger(&node_id)
+            .flatten()
             .collect::<HashSet<String>>();
 
         let values_hashset = values.iter().cloned().collect::<HashSet<String>>();
@@ -721,9 +726,9 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     }
 
     // Check that all of the externalized ledgers match block-by-block
-    let first_node_ledger = simulation.get_shared_data(&node_ids[0]).ledger;
+    let first_node_ledger = simulation.get_ledger(&node_ids[0]);
     for node_id in node_ids.iter().skip(1) {
-        let other_node_ledger = simulation.get_shared_data(&node_id).ledger;
+        let other_node_ledger = simulation.get_ledger(&node_id);
 
         if first_node_ledger.len() != other_node_ledger.len() {
             log::error!(
