@@ -691,6 +691,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
 
         let externalized_values_hashset = simulation
             .get_ledger(&node_id)
+            .iter()
             .flatten()
             .collect::<HashSet<String>>();
 
