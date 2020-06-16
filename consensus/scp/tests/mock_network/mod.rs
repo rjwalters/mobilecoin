@@ -346,6 +346,17 @@ impl SimulatedNode {
 
                                 // Process an incoming SCP message
                                 SimulatedNodeTaskMessage::Msg(msg) => {
+
+                                    if msg.slot_index != (current_slot as SlotIndex) {
+                                        log::error!(
+                                            logger,
+                                            "node {} slot {} : got msg for a different slot {:?}",
+                                            node_id,
+                                            current_slot as SlotIndex,
+                                            msg,
+                                        );
+                                    }
+
                                     incoming_msgs.push(msg);
                                 }
 
@@ -449,6 +460,7 @@ impl SimulatedNode {
                             let externalized_values_as_set: HashSet<String> =
                                 externalized_values.iter().cloned().collect();
 
+                            // we routinely end up externalizing values that we did not nominate...?
                             let unexpected_values: HashSet<String> = externalized_values_as_set
                                 .difference(&nominated_values)
                                 .cloned()
