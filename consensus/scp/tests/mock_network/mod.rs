@@ -318,6 +318,7 @@ impl SimulatedNode {
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
         let mut total_externalized_values: usize = 0;
+        let expected_externalized_values: usize = test_options.values_to_submit;
 
         let thread_handle = Some(
             thread::Builder::new()
@@ -440,16 +441,17 @@ impl SimulatedNode {
                                 .fold(0, |acc, block| acc + block.len());
                             drop(locked_shared_data);
 
-                            if total_values > 100 {
+                            if total_values > expected_externalized_values {
                                 log::error!(
                                     logger,
-                                    "(  ledger ) node {} slot {} : {} new, {} in shared_data, {} pending, {} in slot",
+                                    "node {} slot {} : {} in new slot, {} in shared_data, {} pending, {} in slot, {} expected",
                                     node_id,
                                     current_slot as SlotIndex,
                                     current_slot_values,
                                     total_values,
                                     remaining_values.len(),
                                     total_externalized_values,
+                                    expected_externalized_values,
                                 );
                             }
 
