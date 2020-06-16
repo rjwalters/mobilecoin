@@ -40,6 +40,8 @@ pub struct TestOptions {
     pub submit_in_parallel: bool,
 
     /// Total number of values to submit. Tests run until all values are externalized by all nodes.
+    /// N.B. if the validity fn doesn't enforce unique values, it's possible a value will appear in 
+    /// multiple places in the ledger, and that the ledger will contain more than values_to_submit
     pub values_to_submit: usize,
 
     /// Approximate rate that values are submitted to nodes.
@@ -321,8 +323,6 @@ impl SimulatedNode {
 
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
-        let mut total_externalized_values: usize = 0;
-        let expected_externalized_values: usize = test_options.values_to_submit;
 
         let thread_handle = Some(
             thread::Builder::new()
@@ -346,17 +346,6 @@ impl SimulatedNode {
 
                                 // Process an incoming SCP message
                                 SimulatedNodeTaskMessage::Msg(msg) => {
-
-                                    if msg.slot_index != (current_slot as SlotIndex) {
-                                        log::error!(
-                                            logger,
-                                            "node {} slot {} : got msg for a different slot {:?}",
-                                            node_id,
-                                            current_slot as SlotIndex,
-                                            msg,
-                                        );
-                                    }
-
                                     incoming_msgs.push(msg);
                                 }
 
@@ -417,7 +406,7 @@ impl SimulatedNode {
                             }
                         }
 
-                        // Process incoming consensus message.
+                        // Process incoming consensus message, which might be for a future slot
                         for msg in incoming_msgs.iter() {
                             let outgoing_msg: Option<Msg<String>> = {
                                 thread_local_node
@@ -456,24 +445,9 @@ impl SimulatedNode {
                         };
 
                         if !externalized_values.is_empty() {
-                            // Stop nominating any values that we have externalized
+                            // Stop nominating any values that we externalize
                             let externalized_values_as_set: HashSet<String> =
                                 externalized_values.iter().cloned().collect();
-
-                            // we routinely end up externalizing values that we did not nominate...?
-                            let unexpected_values: HashSet<String> = externalized_values_as_set
-                                .difference(&nominated_values)
-                                .cloned()
-                                .collect();
-                            if !unexpected_values.is_empty() {
-                                log::error!(
-                                    logger,
-                                    "node {} slot {} : unexpected values {:?}",
-                                    node_id,
-                                    current_slot as SlotIndex,
-                                    unexpected_values,
-                                );
-                            }
 
                             let remaining_values: HashSet<String> = pending_values
                                 .difference(&externalized_values_as_set)
@@ -481,7 +455,6 @@ impl SimulatedNode {
                                 .collect();
 
                             let current_slot_values = externalized_values.len();
-                            total_externalized_values += current_slot_values;
 
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
@@ -493,37 +466,6 @@ impl SimulatedNode {
                                 .ledger
                                 .iter()
                                 .fold(0, |acc, block| acc + block.len());
-
-                            if total_values > expected_externalized_values {
-                                log::error!(
-                                    logger,
-                                    "node {} slot {} : {} in new slot, {} in shared_data, {} pending, {} in slot, {} expected",
-                                    node_id,
-                                    current_slot as SlotIndex,
-                                    current_slot_values,
-                                    total_values,
-                                    remaining_values.len(),
-                                    total_externalized_values,
-                                    expected_externalized_values,
-                                );
-
-                                // find which two blocks have the duplicate
-                                let mut previous_block:Vec<String> = Vec::new();
-                                for (block_index, block) in locked_shared_data.ledger.iter().enumerate() {
-                                    for value in block {
-                                        if previous_block.contains(value) {
-                                            log::error!(
-                                                logger,
-                                                "block {} and block {} both contain {}",
-                                                block_index,
-                                                block_index-1,
-                                                value,
-                                            );
-                                        }
-                                    }
-                                    previous_block = block.clone();
-                                }
-                            }
 
                             drop(locked_shared_data);
 
@@ -663,7 +605,6 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
 
     // push values
     let mut last_log = Instant::now();
-    let mut num_pushed_values = 0;
     for i in 0..test_options.values_to_submit {
         let start = Instant::now();
 
@@ -678,13 +619,11 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             simulation.push_value(&node_ids[n], &values[i]);
         }
 
-        num_pushed_values += 1;
-
         if last_log.elapsed().as_millis() > 999 {
             log::info!(
                 simulation.logger,
                 "( testing ) pushed {}/{} values",
-                num_pushed_values,
+                i,
                 test_options.values_to_submit
             );
             last_log = Instant::now();
@@ -700,15 +639,14 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     // report end of value push
     log::info!(
         simulation.logger,
-        "( testing ) pushed {}/{} values",
-        num_pushed_values,
+        "( testing ) pushed {} values",
         test_options.values_to_submit
     );
 
     // abort testing if we exceed allowed time
     let deadline = Instant::now() + test_options.allowed_test_time;
 
-    // Check that the values got added to the nodes
+    // Check that the values have been externalized by all nodes
     for node_id in node_ids.iter() {
         let mut last_log = Instant::now();
         loop {
@@ -724,7 +662,10 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             }
 
             let num_externalized_values = simulation.get_ledger_size(&node_id);
-            if num_externalized_values == num_pushed_values {
+            if num_externalized_values >= num_pushed_values {
+                // if the validity_fn does not enforce unique values, we can end up
+                // with values that appear in multiple slots. This is not a problem
+                // provided that all the nodes externalize the same ledger!
                 log::info!(
                     simulation.logger,
                     "( testing ) externalized {}/{} values at node {}",
@@ -733,18 +674,6 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     node_id
                 );
                 break;
-            }
-
-            if num_externalized_values > num_pushed_values {
-                log::error!(
-                    simulation.logger,
-                    "( testing ) externalized extra values at node {}: {} > {}",
-                    node_id,
-                    num_externalized_values,
-                    num_pushed_values,
-                );
-                // panic
-                panic!("test failed due to extra values being externalized");
             }
 
             if last_log.elapsed().as_millis() > 999 {
@@ -759,6 +688,8 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             }
         }
 
+        // check that all of the submitted values were externalized
+        // duplicate values are possible depending on validity_fn
         let externalized_values_hashset = simulation
             .get_ledger(&node_id)
             .iter()
@@ -781,16 +712,8 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
 
             log::error!(
                 simulation.logger,
-                "node {} externalized wrong values!",
+                "node {} externalized wrong values! missing: {:?}, unexpected: {:?}",
                 node_id,
-            );
-
-            log::error!(
-                simulation.logger,
-                "lengths: {} / {} / {}, missing: {:?}, found unexpected: {:?}",
-                num_pushed_values,
-                values_hashset.len(),
-                externalized_values_hashset.len(),
                 missing_values,
                 unexpected_values,
             );
