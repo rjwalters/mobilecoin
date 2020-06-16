@@ -314,7 +314,6 @@ impl SimulatedNode {
 
         // See byzantine_ledger.rs#L626
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
-        let mut nominated_values: HashSet<String> = HashSet::default();
 
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
@@ -327,109 +326,6 @@ impl SimulatedNode {
                     let mut pending_values: HashSet<String> = HashSet::default();
 
                     'main_loop: loop {
-                        // See byzantine_ledger.rs#L546 - nominate before handling consensus msg
-                        let mut incoming_msgs = Vec::<Arc<Msg<String>>>::with_capacity(1);
-
-                        // Collect one incoming message using a non-blocking channel read
-                        match receiver.try_recv() {
-                            Ok(scp_msg) => match scp_msg {
-                                // Collect values submitted from the client
-                                SimulatedNodeTaskMessage::Value(value) => {
-                                    pending_values.insert(value.clone());
-                                }
-
-                                // Process an incoming SCP message
-                                SimulatedNodeTaskMessage::Msg(msg) => {
-                                    incoming_msgs.push(msg);
-                                }
-
-                                // Stop the thread
-                                SimulatedNodeTaskMessage::StopTrigger => {
-                                    break 'main_loop;
-                                }
-                            },
-                            Err(_) => {
-                                // Yield to other threads when we don't get a new message
-                                std::thread::yield_now();
-                            }
-                        };
-
-                        // Nominate pending values submitted to our node
-                        if (nominated_values.len() < max_pending_values_to_nominate)
-                            && !pending_values.is_empty()
-                        {
-                            let mut values: Vec<String> = pending_values.iter().cloned().collect();
-                            values.sort();
-                            values.truncate(max_pending_values_to_nominate);
-
-                            // mc_common::HashSet does not support extend because of our enclave-safe HasherBuilder
-                            let mut selected_values: HashSet<String> = HashSet::default();
-                            for v in values.iter().cloned() {
-                                selected_values.insert(v);
-                            }
-
-                            let values_to_nominate: HashSet<String> = selected_values
-                                .difference(&nominated_values)
-                                .cloned()
-                                .collect();
-
-                            if !values_to_nominate.is_empty() {
-                                let outgoing_msg: Option<Msg<String>> = {
-                                    thread_local_node
-                                        .lock()
-                                        .expect("thread_local_node lock failed when nominating value")
-                                        .nominate(
-                                            current_slot as SlotIndex,
-                                            // without optimization
-                                            // BTreeSet::from_iter(values)
-                                            BTreeSet::from_iter(values_to_nominate
-                                                .iter()
-                                                .cloned()
-                                                .collect::<HashSet<String>>()
-                                            )
-                                        )
-                                        .expect("node.nominate() failed")
-                                };
-                                if let Some(outgoing_msg) = outgoing_msg {
-                                    (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                                    total_broadcasts += 1;
-                                }
-
-                                for v in values_to_nominate.iter().cloned() {
-                                    nominated_values.insert(v);
-                                }
-                            }
-                        }
-
-                        // Process incoming consensus message.
-                        for msg in incoming_msgs.iter() {
-                            let outgoing_msg: Option<Msg<String>> = {
-                                thread_local_node
-                                    .lock()
-                                    .expect("thread_local_node lock failed when handling msg")
-                                    .handle(msg)
-                                    .expect("node.handle_msg() failed")
-                            };
-
-                            if let Some(outgoing_msg) = outgoing_msg {
-                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                                total_broadcasts += 1;
-                            }
-                        }
-
-                        // Process timeouts (for all slots)
-                        let timeout_msgs: Vec<Msg<String>> = {
-                            thread_local_node
-                                .lock()
-                                .expect("thread_local_node lock failed when processing timeouts")
-                                .process_timeouts()
-                                .into_iter()
-                                .collect()
-                        };
-                        for outgoing_msg in timeout_msgs {
-                            (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                            total_broadcasts += 1;
-                        }
 
                         // See if we're done with the current slot
                         let externalized_values: Vec<String> = {
@@ -476,6 +372,85 @@ impl SimulatedNode {
                             pending_values = remaining_values;
                             current_slot += 1;
                             nominated_values = HashSet::default();
+                        }
+
+                        // See byzantine_ledger.rs#L546 - nominate before handling consensus msg
+                        let mut incoming_msgs = Vec::<Arc<Msg<String>>>::with_capacity(1);
+
+                        // Collect one incoming message using a non-blocking channel read
+                        match receiver.try_recv() {
+                            Ok(scp_msg) => match scp_msg {
+                                // Collect values submitted from the client
+                                SimulatedNodeTaskMessage::Value(value) => {
+                                    pending_values.insert(value.clone());
+                                }
+
+                                // Process an incoming SCP message
+                                SimulatedNodeTaskMessage::Msg(msg) => {
+                                    incoming_msgs.push(msg);
+                                }
+
+                                // Stop the thread
+                                SimulatedNodeTaskMessage::StopTrigger => {
+                                    break 'main_loop;
+                                }
+                            },
+                            Err(_) => {
+                                // Yield to other threads when we don't get a new message
+                                std::thread::yield_now();
+                            }
+                        };
+
+                        // Nominate pending values submitted to our node
+                        if !pending_values.is_empty() {
+                            let mut values: Vec<String> = pending_values.iter().cloned().collect();
+                            values.sort();
+                            values.truncate(max_pending_values_to_nominate);
+
+                            let outgoing_msg: Option<Msg<String>> = {
+                                thread_local_node
+                                    .lock()
+                                    .expect("thread_local_node lock failed when nominating value")
+                                    .nominate(
+                                        current_slot as SlotIndex,
+                                        BTreeSet::from_iter(values)
+                                    )
+                                    .expect("node.nominate() failed")
+                            };
+                            if let Some(outgoing_msg) = outgoing_msg {
+                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                                total_broadcasts += 1;
+                            }
+                        }
+
+                        // Process incoming consensus message.
+                        for msg in incoming_msgs.iter() {
+                            let outgoing_msg: Option<Msg<String>> = {
+                                thread_local_node
+                                    .lock()
+                                    .expect("thread_local_node lock failed when handling msg")
+                                    .handle(msg)
+                                    .expect("node.handle_msg() failed")
+                            };
+
+                            if let Some(outgoing_msg) = outgoing_msg {
+                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                                total_broadcasts += 1;
+                            }
+                        }
+
+                        // Process timeouts (for all slots)
+                        let timeout_msgs: Vec<Msg<String>> = {
+                            thread_local_node
+                                .lock()
+                                .expect("thread_local_node lock failed when processing timeouts")
+                                .process_timeouts()
+                                .into_iter()
+                                .collect()
+                        };
+                        for outgoing_msg in timeout_msgs {
+                            (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                            total_broadcasts += 1;
                         }
                     }
                     log::info!(
