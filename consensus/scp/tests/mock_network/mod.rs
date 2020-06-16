@@ -30,6 +30,8 @@ pub mod cyclic_topology;
 pub mod mesh_topology;
 pub mod optimization;
 
+const CHARACTERS_PER_VALUE: usize = 5;
+
 // Controls test parameters
 #[derive(Clone)]
 pub struct TestOptions {
@@ -481,21 +483,15 @@ impl SimulatedNode {
                                     expected_externalized_values,
                                 );
 
-                                // find which two blocks have the duplicate
-                                let mut previous_block:Vec<String> = Vec::new();
+                                // print all blocks
                                 for (block_index, block) in locked_shared_data.ledger.iter().enumerate() {
-                                    for value in block {
-                                        if previous_block.contains(value) {
-                                            log::error!(
-                                                logger,
-                                                "block {} and block {} both contain {}",
-                                                block_index,
-                                                block_index-1,
-                                                value,
-                                            );
-                                        }
-                                    }
-                                    previous_block = block.clone();
+                                    log::error!(
+                                        logger,
+                                        "[{} {}] {:?}",
+                                        block_index,
+                                        block.len(),
+                                        block,
+                                    );
                                 }
 
                             }
@@ -607,7 +603,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     let mut rng = mc_util_test_helper::get_seeded_rng();
     let mut values = Vec::<String>::with_capacity(test_options.values_to_submit);
     for _i in 0..test_options.values_to_submit {
-        let value = mc_util_test_helper::random_str(&mut rng, 20);
+        let value = mc_util_test_helper::random_str(&mut rng, CHARACTERS_PER_VALUE);
         values.push(value);
     }
 
