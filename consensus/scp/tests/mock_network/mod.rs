@@ -380,13 +380,13 @@ impl SimulatedNode {
                                         .expect("thread_local_node lock failed when nominating value")
                                         .nominate(
                                             current_slot as SlotIndex,
-                                            // remove optimization
-                                            BTreeSet::from_iter(values)
-                                            //BTreeSet::from_iter(values_to_nominate
-                                            //    .iter()
-                                            //    .cloned()
-                                            //    .collect::<HashSet<String>>()
-                                            //)
+                                            // without optimization
+                                            // BTreeSet::from_iter(values)
+                                            BTreeSet::from_iter(values_to_nominate
+                                                .iter()
+                                                .cloned()
+                                                .collect::<HashSet<String>>()
+                                            )
                                         )
                                         .expect("node.nominate() failed")
                                 };
