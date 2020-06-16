@@ -693,17 +693,20 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             .get_ledger(&node_id)
             .iter()
             .flatten()
+            .cloned()
             .collect::<HashSet<String>>();
 
         let values_hashset = values.iter().cloned().collect::<HashSet<String>>();
 
         if values_hashset != externalized_values_hashset {
-            let missing_values: HashSet<_> = values_hashset
+            let missing_values: HashSet<String> = values_hashset
                 .difference(&externalized_values_hashset)
+                .cloned()
                 .collect();
 
-            let unexpected_values: HashSet<_> = externalized_values_hashset
+            let unexpected_values: HashSet<String> = externalized_values_hashset
                 .difference(&values_hashset)
+                .cloned()
                 .collect();
 
             log::error!(
