@@ -314,6 +314,7 @@ impl SimulatedNode {
 
         // See byzantine_ledger.rs#L626
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
+        let mut nominated_values: HashSet<String> = HashSet::default();
 
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
@@ -357,24 +358,47 @@ impl SimulatedNode {
                         };
 
                         // Nominate pending values submitted to our node
-                        if !pending_values.is_empty() {
+                        if (nominated_values.len() < max_pending_values_to_nominate)
+                            && !pending_values.is_empty()
+                        {
                             let mut values: Vec<String> = pending_values.iter().cloned().collect();
                             values.sort();
                             values.truncate(max_pending_values_to_nominate);
 
-                            let outgoing_msg: Option<Msg<String>> = {
-                                thread_local_node
-                                    .lock()
-                                    .expect("thread_local_node lock failed when nominating value")
-                                    .nominate(
-                                        current_slot as SlotIndex,
-                                        BTreeSet::from_iter(values)
-                                    )
-                                    .expect("node.nominate() failed")
-                            };
-                            if let Some(outgoing_msg) = outgoing_msg {
-                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                                total_broadcasts += 1;
+                            // mc_common::HashSet does not support extend because of our enclave-safe HasherBuilder
+                            let mut selected_values: HashSet<String> = HashSet::default();
+                            for v in values.iter().cloned() {
+                                selected_values.insert(v);
+                            }
+
+                            let values_to_nominate: HashSet<String> = selected_values
+                                .difference(&nominated_values)
+                                .cloned()
+                                .collect();
+
+                            if !values_to_nominate.is_empty() {
+                                let outgoing_msg: Option<Msg<String>> = {
+                                    thread_local_node
+                                        .lock()
+                                        .expect("thread_local_node lock failed when nominating value")
+                                        .nominate(
+                                            current_slot as SlotIndex,
+                                            BTreeSet::from_iter(values_to_nominate
+                                                .iter()
+                                                .cloned()
+                                                .collect::<HashSet<String>>()
+                                            )
+                                        )
+                                        .expect("node.nominate() failed")
+                                };
+                                if let Some(outgoing_msg) = outgoing_msg {
+                                    (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                                    total_broadcasts += 1;
+                                }
+
+                                for v in values_to_nominate.iter().cloned() {
+                                    nominated_values.insert(v);
+                                }
                             }
                         }
 
@@ -467,6 +491,7 @@ impl SimulatedNode {
 
                             pending_values = remaining_values;
                             current_slot += 1;
+                            nominated_values = HashSet::default();
                         }
                     }
                     log::info!(
