@@ -391,31 +391,35 @@ impl SimulatedNode {
                                         )
                                         .expect("node.nominate() failed")
                                 };
+                                for v in values_to_nominate.iter().cloned() {
+                                    nominated_values.insert(v);
+                                }
+
                                 if let Some(outgoing_msg) = outgoing_msg {
                                     (broadcast_msg_fn)(logger.clone(), outgoing_msg);
                                     total_broadcasts += 1;
-                                }
-
-                                for v in values_to_nominate.iter().cloned() {
-                                    nominated_values.insert(v);
+                                    continue 'main_loop;
                                 }
                             }
                         }
 
                         // Process incoming consensus message.
-                        for msg in incoming_msgs.iter() {
-                            let outgoing_msg: Option<Msg<String>> = {
-                                thread_local_node
-                                    .lock()
-                                    .expect("thread_local_node lock failed when handling msg")
-                                    .handle(msg)
-                                    .expect("node.handle_msg() failed")
-                            };
+                        if !incoming_msgs.is_empty() {
+                            for msg in incoming_msgs.iter() {
+                                let outgoing_msg: Option<Msg<String>> = {
+                                    thread_local_node
+                                        .lock()
+                                        .expect("thread_local_node lock failed when handling msg")
+                                        .handle(msg)
+                                        .expect("node.handle_msg() failed")
+                                };
 
-                            if let Some(outgoing_msg) = outgoing_msg {
-                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                                total_broadcasts += 1;
+                                if let Some(outgoing_msg) = outgoing_msg {
+                                    (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                                    total_broadcasts += 1;
+                                }
                             }
+                            continue 'main_loop;
                         }
 
                         // Process timeouts (for all slots)
@@ -427,9 +431,12 @@ impl SimulatedNode {
                                 .into_iter()
                                 .collect()
                         };
-                        for outgoing_msg in timeout_msgs {
-                            (broadcast_msg_fn)(logger.clone(), outgoing_msg);
-                            total_broadcasts += 1;
+                        if !timeout_msgs.is_empty() {
+                            for outgoing_msg in timeout_msgs {
+                                (broadcast_msg_fn)(logger.clone(), outgoing_msg);
+                                total_broadcasts += 1;
+                            }
+                            continue 'main_loop;
                         }
 
                         // See if we're done with the current slot
