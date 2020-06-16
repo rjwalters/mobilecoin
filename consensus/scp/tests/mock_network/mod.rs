@@ -371,7 +371,6 @@ impl SimulatedNode {
 
                             pending_values = remaining_values;
                             current_slot += 1;
-                            nominated_values = HashSet::default();
                         }
 
                         // See byzantine_ledger.rs#L546 - nominate before handling consensus msg
