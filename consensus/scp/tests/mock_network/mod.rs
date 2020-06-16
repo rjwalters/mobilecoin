@@ -440,7 +440,7 @@ impl SimulatedNode {
                                 .fold(0, |acc, block| acc + block.len());
                             drop(locked_shared_data);
 
-                            if total_values > 1000 {
+                            if total_values > 100 {
                                 log::error!(
                                     logger,
                                     "(  ledger ) node {} slot {} : {} new, {} in shared_data, {} pending, {} in slot",
