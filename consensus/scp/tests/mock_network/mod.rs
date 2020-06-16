@@ -30,7 +30,8 @@ pub mod cyclic_topology;
 pub mod mesh_topology;
 pub mod optimization;
 
-const CHARACTERS_PER_VALUE: usize = 5;
+// Test values are random strings of this length.
+const CHARACTERS_PER_VALUE: usize = 10;
 
 // Controls test parameters
 #[derive(Clone)]
@@ -469,7 +470,6 @@ impl SimulatedNode {
                                 .iter()
                                 .fold(0, |acc, block| acc + block.len());
 
-
                             if total_values > expected_externalized_values {
                                 log::error!(
                                     logger,
@@ -483,17 +483,22 @@ impl SimulatedNode {
                                     expected_externalized_values,
                                 );
 
-                                // print all blocks
+                                // find which two blocks have the duplicate
+                                let mut previous_block:Vec<String> = Vec::new();
                                 for (block_index, block) in locked_shared_data.ledger.iter().enumerate() {
-                                    log::error!(
-                                        logger,
-                                        "[{} {}] {:?}",
-                                        block_index,
-                                        block.len(),
-                                        block,
-                                    );
+                                    for value in block {
+                                        if previous_block.contains(value) {
+                                            log::error!(
+                                                logger,
+                                                "block {} and block {} both contain {}",
+                                                block_index,
+                                                block_index-1,
+                                                value,
+                                            );
+                                        }
+                                    }
+                                    previous_block = block.clone();
                                 }
-
                             }
 
                             drop(locked_shared_data);
