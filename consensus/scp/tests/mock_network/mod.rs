@@ -495,7 +495,7 @@ impl SimulatedNode {
                                             );
                                         }
                                     }
-                                    previous_block = block;
+                                    previous_block = block.clone();
                                 }
 
                             }
