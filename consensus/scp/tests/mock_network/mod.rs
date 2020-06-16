@@ -490,7 +490,7 @@ impl SimulatedNode {
                                         "[{} {}] {:?}",
                                         block_index,
                                         block.len(),
-                                        block.sort(),
+                                        block.clone().sort(),
                                     );
                                 }
 
