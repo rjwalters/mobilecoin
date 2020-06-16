@@ -317,6 +317,7 @@ impl SimulatedNode {
 
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
+        let mut total_externalized_values: usize = 0;
 
         let thread_handle = Some(
             thread::Builder::new()
@@ -416,7 +417,6 @@ impl SimulatedNode {
 
                         if !externalized_values.is_empty() {
                             // Stop nominating any values that we have externalized
-
                             let externalized_values_as_set: HashSet<String> =
                                 externalized_values.iter().cloned().collect();
 
@@ -426,6 +426,7 @@ impl SimulatedNode {
                                 .collect();
 
                             let current_slot_values = externalized_values.len();
+                            total_externalized_values += current_slot_values;
 
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
@@ -440,15 +441,6 @@ impl SimulatedNode {
                             drop(locked_shared_data);
 
                             if total_values > 1000 {
-                                let mut externalized_count = 0;
-                                for i in 0..current_slot {
-                                    externalized_count += thread_local_node
-                                        .lock()
-                                        .expect("thread_local_node lock failed when getting externalized_values")
-                                        .get_externalized_values(i as SlotIndex)
-                                        .len();
-                                }
-
                                 log::error!(
                                     logger,
                                     "(  ledger ) node {} slot {} : {} new, {} in shared_data, {} pending, {} in slot",
@@ -457,7 +449,7 @@ impl SimulatedNode {
                                     current_slot_values,
                                     total_values,
                                     remaining_values.len(),
-                                    externalized_count,
+                                    total_externalized_values,
                                 );
                             }
 
