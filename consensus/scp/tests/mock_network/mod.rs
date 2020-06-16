@@ -40,7 +40,7 @@ pub struct TestOptions {
     pub submit_in_parallel: bool,
 
     /// Total number of values to submit. Tests run until all values are externalized by all nodes.
-    /// N.B. if the validity fn doesn't enforce unique values, it's possible a value will appear in 
+    /// N.B. if the validity fn doesn't enforce unique values, it's possible a value will appear in
     /// multiple places in the ledger, and that the ledger will contain more than values_to_submit
     pub values_to_submit: usize,
 
@@ -662,7 +662,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             }
 
             let num_externalized_values = simulation.get_ledger_size(&node_id);
-            if num_externalized_values >= num_pushed_values {
+            if num_externalized_values >= test_options.values_to_submit {
                 // if the validity_fn does not enforce unique values, we can end up
                 // with values that appear in multiple slots. This is not a problem
                 // provided that all the nodes externalize the same ledger!
@@ -670,7 +670,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     simulation.logger,
                     "( testing ) externalized {}/{} values at node {}",
                     num_externalized_values,
-                    num_pushed_values,
+                    test_options.values_to_submit,
                     node_id
                 );
                 break;
@@ -681,7 +681,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     simulation.logger,
                     "( testing ) externalized {}/{} values at node {}",
                     num_externalized_values,
-                    num_pushed_values,
+                    test_options.values_to_submit,
                     node_id
                 );
                 last_log = Instant::now();
