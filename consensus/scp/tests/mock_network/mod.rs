@@ -327,52 +327,6 @@ impl SimulatedNode {
 
                     'main_loop: loop {
 
-                        // See if we're done with the current slot
-                        let externalized_values: Vec<String> = {
-                            thread_local_node
-                                .lock()
-                                .expect("thread_local_node lock failed when getting externalized_values")
-                                .get_externalized_values(current_slot as SlotIndex)
-                        };
-
-                        if !externalized_values.is_empty() {
-                            // Stop proposing/nominating any values that we have externalized
-
-                            let externalized_values_as_set: HashSet<String> =
-                                externalized_values.iter().cloned().collect();
-
-                            let remaining_values: HashSet<String> = pending_values
-                                .difference(&externalized_values_as_set)
-                                .cloned()
-                                .collect();
-
-                            let last_slot_values = externalized_values.len();
-
-                            let mut locked_shared_data = thread_shared_data
-                                .lock()
-                                .expect("thread_shared_data lock failed");
-                            locked_shared_data.ledger.push(externalized_values);
-
-                            let total_values = locked_shared_data
-                                .ledger
-                                .iter()
-                                .fold(0, |acc, block| acc + block.len());
-                            drop(locked_shared_data);
-
-                            log::trace!(
-                                logger,
-                                "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
-                                node_id,
-                                current_slot as SlotIndex,
-                                last_slot_values,
-                                total_values,
-                                remaining_values.len(),
-                            );
-
-                            pending_values = remaining_values;
-                            current_slot += 1;
-                        }
-
                         // See byzantine_ledger.rs#L546 - nominate before handling consensus msg
                         let mut incoming_msgs = Vec::<Arc<Msg<String>>>::with_capacity(1);
 
@@ -450,6 +404,64 @@ impl SimulatedNode {
                         for outgoing_msg in timeout_msgs {
                             (broadcast_msg_fn)(logger.clone(), outgoing_msg);
                             total_broadcasts += 1;
+                        }
+
+                        // See if we're done with the current slot
+                        let externalized_values: Vec<String> = {
+                            thread_local_node
+                                .lock()
+                                .expect("thread_local_node lock failed when getting externalized_values")
+                                .get_externalized_values(current_slot as SlotIndex)
+                        };
+
+                        if !externalized_values.is_empty() {
+                            // Stop nominating any values that we have externalized
+
+                            let externalized_values_as_set: HashSet<String> =
+                                externalized_values.iter().cloned().collect();
+
+                            let remaining_values: HashSet<String> = pending_values
+                                .difference(&externalized_values_as_set)
+                                .cloned()
+                                .collect();
+
+                            let slot_values = externalized_values.len();
+
+                            let mut locked_shared_data = thread_shared_data
+                                .lock()
+                                .expect("thread_shared_data lock failed");
+                            locked_shared_data.ledger.push(externalized_values);
+
+                            let total_values = locked_shared_data
+                                .ledger
+                                .iter()
+                                .fold(0, |acc, block| acc + block.len());
+                            drop(locked_shared_data);
+
+                            if total_values > 1000 {
+                                log::error!(
+                                    logger,
+                                    "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
+                                    node_id,
+                                    current_slot as SlotIndex,
+                                    slot_values,
+                                    total_values,
+                                    remaining_values.len(),
+                                );
+                            }
+
+                            log::trace!(
+                                logger,
+                                "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
+                                node_id,
+                                current_slot as SlotIndex,
+                                slot_values,
+                                total_values,
+                                remaining_values.len(),
+                            );
+
+                            pending_values = remaining_values;
+                            current_slot += 1;
                         }
                     }
                     log::info!(
