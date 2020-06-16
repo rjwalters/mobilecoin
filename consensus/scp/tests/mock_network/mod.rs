@@ -422,7 +422,6 @@ impl SimulatedNode {
                             }
                         }
 
-
                         // Process timeouts (for all slots)
                         let timeout_msgs: Vec<Msg<String>> = {
                             thread_local_node
@@ -436,7 +435,6 @@ impl SimulatedNode {
                             (broadcast_msg_fn)(logger.clone(), outgoing_msg);
                             total_broadcasts += 1;
                         }
-
 
                         // See if we're done with the current slot
                         let externalized_values: Vec<String> = {
