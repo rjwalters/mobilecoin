@@ -138,13 +138,12 @@ impl SimulatedNetwork {
         };
 
         for node_options in network.nodes.iter() {
-
-            assert!(!options_for_this_node.peers.contains(&node_options.id));
+            assert!(!node_options.peers.contains(&node_options.id));
 
             let nodes_map_clone = Arc::clone(&simulation.nodes_map);
 
             let (node, join_handle_option) = SimulatedNode::new(
-                format!("{}-{}", network.name, node_index),
+                format!("{}-{}", network.name, node_options.id.clone()),
                 node_options.id.clone(),
                 node_options.quorum_set,
                 test_options,
@@ -152,7 +151,7 @@ impl SimulatedNetwork {
                     SimulatedNetwork::broadcast_msg(
                         logger,
                         &Arc::clone(&simulation.nodes_map),
-                        &options_for_this_node.peers,
+                        &node_options.peers,
                         msg
                     )
                 }),
