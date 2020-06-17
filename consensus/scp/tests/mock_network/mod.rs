@@ -445,7 +445,7 @@ impl SimulatedNode {
                             .get_externalized_values(current_slot as SlotIndex);
 
                         if !new_block.is_empty() {
-                            for v in new_block {
+                            for v in &new_block {
                                 externalized_values.insert(v.clone());
                             }
 
