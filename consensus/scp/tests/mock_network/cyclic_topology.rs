@@ -8,7 +8,7 @@
 
 use crate::mock_network;
 
-use mc_common::NodeID;
+use mc_common::{HashSet, NodeID};
 use mc_consensus_scp::test_utils;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -19,11 +19,11 @@ use mc_consensus_scp::test_utils;
 pub fn directed_cycle(num_nodes: usize) -> mock_network::Network {
     let mut nodes = Vec::<mock_network::NodeOptions>::new();
     for node_index in 0..num_nodes {
-        let next_node_index: u32 = {
+        let next_node_id: NodeID = {
             if node_index + 1 < num_nodes {
-                node_index as u32 + 1
+                test_utils::test_node_id(node_index as u32 + 1)
             } else {
-                0
+                test_utils::test_node_id(0)
             }
         };
 
