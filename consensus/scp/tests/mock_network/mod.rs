@@ -190,9 +190,7 @@ impl SimulatedNetwork {
         for node_num in 0..num_nodes {
             nodes_map
                 .get_mut(&test_utils::test_node_id(node_num as u32))
-                .expect("failed to get node from nodes_map")
-                .lock()
-                .expect("lock failed on node sending stop")
+                .expect("could not find node_id in nodes_map")
                 .send_stop();
         }
         drop(nodes_map);
@@ -212,18 +210,16 @@ impl SimulatedNetwork {
     fn push_value(&self, node_id: &NodeID, value: &str) {
         self.nodes_map
             .lock()
-            .expect("lock failed on nodes_map getting node")
+            .expect("lock failed on nodes_map pushing value")
             .get(node_id)
             .expect("could not find node_id in nodes_map")
-            .lock()
-            .expect("lock failed on node sending value")
             .send_value(value);
     }
 
     fn get_ledger(&self, node_id: &NodeID) -> Vec<Vec<String>> {
         self.nodes_shared_data
             .get(node_id)
-            .expect("could not find node_id in nodes_map")
+            .expect("could not find node_id in nodes_shared_data")
             .lock()
             .expect("lock failed on shared_data getting ledger")
             .ledger
@@ -233,7 +229,7 @@ impl SimulatedNetwork {
     fn get_ledger_size(&self, node_id: &NodeID) -> usize {
         self.nodes_shared_data
             .get(node_id)
-            .expect("could not find node_id in nodes_map")
+            .expect("could not find node_id in nodes_shared_data")
             .lock()
             .expect("lock failed on shared_data getting ledger size")
             .ledger_size()
