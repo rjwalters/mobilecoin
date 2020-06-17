@@ -34,7 +34,7 @@ pub fn directed_cycle(num_nodes: usize) -> mock_network::Network {
 
         nodes.push(mock_network::NodeOptions::new(
             test_utils::test_node_id(node_index as u32)
-            peers_vector.iter().clone().collect::<HashSet<NodeID>>(),
+            peers_vector.iter().cloned().collect::<HashSet<NodeID>>(),
             QuorumSet::new_with_node_ids(1, vec![next_node_id]),
         ));
     }
