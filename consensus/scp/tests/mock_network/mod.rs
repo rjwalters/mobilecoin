@@ -463,6 +463,8 @@ impl SimulatedNode {
                                 .lock()
                                 .expect("thread_shared_data lock failed");
 
+                            let current_slot_values_len = current_slot_values.len();
+
                             locked_shared_data.ledger.push(current_slot_values);
 
                             let total_values = locked_shared_data
@@ -477,7 +479,7 @@ impl SimulatedNode {
                                 "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
                                 node_id,
                                 current_slot as SlotIndex,
-                                current_slot_values.len(),
+                                current_slot_values_len,
                                 total_values,
                                 remaining_values.len(),
                             );
