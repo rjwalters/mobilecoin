@@ -8,13 +8,6 @@
 
 use crate::mock_network;
 
-use mc_common::{
-    HashSet, NodeID,
-};
-use mc_consensus_scp::{
-    quorum_set::QuorumSet,
-    test_utils,
-};
 
 ///////////////////////////////////////////////////////////////////////////////
 // Cyclic Topology (similar to Figure 4 in the SCP whitepaper)
