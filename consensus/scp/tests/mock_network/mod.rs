@@ -137,7 +137,7 @@ impl SimulatedNetwork {
             logger: logger.clone(),
         };
 
-        for node_options in network.nodes.iter().enumerate() {
+        for node_options in network.nodes.iter() {
 
             assert!(!options_for_this_node.peers.contains(&node_options.id));
 
@@ -537,7 +537,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     );
 
     // get a vector of the node_ids
-    let mut node_ids = network.nodes.iter().map(|n| n.id).collect();
+    let mut node_ids: Vec<NodeID> = network.nodes.iter().map(|n| n.id).collect();
 
     // check that all ledgers start empty
     for n in 0..network.nodes.len() {
