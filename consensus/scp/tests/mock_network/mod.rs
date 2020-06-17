@@ -321,6 +321,7 @@ impl SimulatedNode {
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
         let mut slot_nominated_values: HashSet<String> = HashSet::default();
 
+        let mut externalized_values: HashSet::default();
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
 
@@ -436,31 +437,33 @@ impl SimulatedNode {
                             total_broadcasts += 1;
                         }
 
-                        // See if we're done with the current slot
-                        let externalized_values: Vec<String> = {
-                            thread_local_node
+                        // Check if the current slot is done
+                        if thread_local_node
+                            .lock()
+                            .expect("thread_local_node lock failed when checking for externalized values")
+                            .has_externalized_values(current_slot as SlotIndex)
+                        {
+                            let mut current_slot_values:Vec<String> = Vec::new();
+                            for v in thread_local_node
                                 .lock()
-                                .expect("thread_local_node lock failed when getting externalized_values")
+                                .expect("thread_local_node lock failed when collecting externalized values")
                                 .get_externalized_values(current_slot as SlotIndex)
-                        };
-
-                        if !externalized_values.is_empty() {
-                            // Stop nominating any values that we externalize
-                            let externalized_values_as_set: HashSet<String> =
-                                externalized_values.iter().cloned().collect();
+                                .iter()
+                            {
+                                externalized_values.insert(v.clone());
+                                current_slot_values.push(v.clone());
+                            }
 
                             let remaining_values: HashSet<String> = pending_values
-                                .difference(&externalized_values_as_set)
+                                .difference(&externalized_values)
                                 .cloned()
                                 .collect();
-
-                            let current_slot_values = externalized_values.len();
 
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
                                 .expect("thread_shared_data lock failed");
 
-                            locked_shared_data.ledger.push(externalized_values);
+                            locked_shared_data.ledger.push(current_slot_values);
 
                             let total_values = locked_shared_data
                                 .ledger
@@ -474,7 +477,7 @@ impl SimulatedNode {
                                 "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
                                 node_id,
                                 current_slot as SlotIndex,
-                                current_slot_values,
+                                current_slot_values.len(),
                                 total_values,
                                 remaining_values.len(),
                             );
