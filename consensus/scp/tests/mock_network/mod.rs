@@ -387,6 +387,7 @@ impl SimulatedNode {
                                         .expect("thread_local_node lock failed when nominating value")
                                         .nominate(
                                             current_slot as SlotIndex,
+                                            // BTreeSet::from_iter(values),
                                             BTreeSet::from_iter(values_to_nominate
                                                 .iter()
                                                 .cloned()
@@ -438,20 +439,14 @@ impl SimulatedNode {
                         }
 
                         // Check if the current slot is done
-                        if thread_local_node
+                        let new_block:Vec<String> = thread_local_node
                             .lock()
-                            .expect("thread_local_node lock failed when checking for externalized values")
-                            .has_externalized_values(current_slot as SlotIndex)
-                        {
-                            let mut current_slot_values:Vec<String> = Vec::new();
-                            for v in thread_local_node
-                                .lock()
-                                .expect("thread_local_node lock failed when collecting externalized values")
-                                .get_externalized_values(current_slot as SlotIndex)
-                                .iter()
-                            {
+                            .expect("thread_local_node lock failed when collecting externalized values")
+                            .get_externalized_values(current_slot as SlotIndex);
+
+                        if !new_block.is_empty() {
+                            for v in new_block {
                                 externalized_values.insert(v.clone());
-                                current_slot_values.push(v.clone());
                             }
 
                             let remaining_values: HashSet<String> = pending_values
@@ -463,9 +458,9 @@ impl SimulatedNode {
                                 .lock()
                                 .expect("thread_shared_data lock failed");
 
-                            let current_slot_values_len = current_slot_values.len();
+                            let new_block_length = new_block.len();
 
-                            locked_shared_data.ledger.push(current_slot_values);
+                            locked_shared_data.ledger.push(new_block);
 
                             let total_values = locked_shared_data
                                 .ledger
@@ -479,7 +474,7 @@ impl SimulatedNode {
                                 "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
                                 node_id,
                                 current_slot as SlotIndex,
-                                current_slot_values_len,
+                                new_block_length,
                                 total_values,
                                 remaining_values.len(),
                             );
