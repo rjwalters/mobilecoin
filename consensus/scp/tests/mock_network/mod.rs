@@ -439,10 +439,12 @@ impl SimulatedNode {
                         }
 
                         // Check if the current slot is done
-                        let new_block:Vec<String> = thread_local_node
-                            .lock()
-                            .expect("thread_local_node lock failed when collecting externalized values")
-                            .get_externalized_values(current_slot as SlotIndex);
+                        let new_block:Vec<String> = {
+                            thread_local_node
+                              .lock()
+                              .expect("thread_local_node lock failed when collecting externalized values")
+                              .get_externalized_values(current_slot as SlotIndex)
+                        };
 
                         if !new_block.is_empty() {
                             for v in &new_block {
