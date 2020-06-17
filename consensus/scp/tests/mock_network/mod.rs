@@ -115,7 +115,7 @@ impl Network {
 }
 
 pub struct SimulatedNetwork {
-    thread_handles: HashMap<NodeID, Option<JoinHandle<()>>>,
+    thread_handles: HashMap<NodeID, JoinHandle<()>>,
     shared_senders: Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,
     shared_data: HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedData>>>,
     logger: Logger,
@@ -164,7 +164,7 @@ impl SimulatedNetwork {
             );
             simulation
                 .thread_handles
-                .insert(node_id.clone(), join_handle_option);
+                .insert(node_id.clone(), join_handle_option.expect("thread failed to spawn"));
             simulation
                 .shared_data
                 .insert(node_id.clone(), node.shared_data.clone());
@@ -196,7 +196,6 @@ impl SimulatedNetwork {
         for node_id in shared_senders.keys() {
             self.thread_handles
                 .remove(node_id)
-                .expect("failed to get handle option from thread_handles")
                 .expect("handle is missing")
                 .join()
                 .expect("SimulatedNode thread join failed");
