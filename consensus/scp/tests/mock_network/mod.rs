@@ -193,7 +193,7 @@ impl SimulatedNetwork {
             log::trace!(self.logger, "joining {}", node_id);
 
             self.handle_map
-                .remove(node_id)
+                .remove(&node_id)
                 .expect("thread handle is missing")
                 .join()
                 .expect("SimulatedNode join failed");
