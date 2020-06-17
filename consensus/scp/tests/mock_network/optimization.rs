@@ -144,9 +144,9 @@ fn optimize_simplers(network: &mock_network::Network, parameters_to_vary: Vec<bo
         (VALUES_TO_SUBMIT as f64 * 1000.0) / min_value,
         OPTIMIZER_ITERATIONS,
         start.elapsed().as_millis(),
-        u64::try_from(coordinates[0].trunc() as i64).unwrap(),
-        usize::try_from(coordinates[1].trunc() as i64).unwrap(),
-        u64::try_from(coordinates[2].trunc() as i64).unwrap(),
+        u64::try_from(c0.trunc() as i64).unwrap(),
+        usize::try_from(c1.trunc() as i64).unwrap(),
+        u64::try_from(c2.trunc() as i64).unwrap(),
         input_interval,
     );
 }
