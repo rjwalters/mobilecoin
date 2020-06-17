@@ -191,6 +191,8 @@ impl SimulatedNetwork {
             nodes_map
                 .get_mut(&test_utils::test_node_id(node_num as u32))
                 .expect("failed to get node from nodes_map")
+                .lock()
+                .expect("lock failed on node sending stop")
                 .send_stop();
         }
         drop(nodes_map);
@@ -213,6 +215,8 @@ impl SimulatedNetwork {
             .expect("lock failed on nodes_map getting node")
             .get(node_id)
             .expect("could not find node_id in nodes_map")
+            .lock()
+            .expect("lock failed on node sending value")
             .send_value(value);
     }
 
@@ -245,7 +249,7 @@ impl SimulatedNetwork {
             .lock()
             .expect("lock failed on nodes_map in broadcast");
 
-        log::trace!(logger, "(broadcast) {}", msg.to_display(),);
+        log::trace!(logger, "(broadcast) {}", msg.to_display());
 
         let amsg = Arc::new(msg);
 
