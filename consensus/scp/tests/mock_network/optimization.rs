@@ -141,7 +141,7 @@ fn optimize_simplers(network: &mock_network::Network, parameters_to_vary: Vec<bo
 fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec<bool>, logger: Logger) {
     let start = Instant::now();
 
-    let mut d:usize;
+    let mut d:usize = 0;
     if parameters_to_vary[0] {
         d = 0;
     }
@@ -170,9 +170,9 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
     ];
 
     let default_options = mock_network::TestOptions::new();
-    let mut c0 = default_options.submissions_per_sec as f64;
-    let mut c1 = default_options.max_pending_values_to_nominate as f64;
-    let mut c2 = default_options.scp_timebase.as_millis() as f64;
+    let c0 = default_options.submissions_per_sec as f64;
+    let c1 = default_options.max_pending_values_to_nominate as f64;
+    let c2 = default_options.scp_timebase.as_millis() as f64;
 
     let mut min_value = std::f64::MAX;
     let mut coordinates = vec![c0,c1,c2];
