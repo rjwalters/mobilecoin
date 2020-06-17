@@ -319,7 +319,7 @@ impl SimulatedNode {
 
         // See byzantine_ledger.rs#L626
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
-        let mut nominated_values: HashSet<String> = HashSet::default();
+        let mut slot_nominated_values: HashSet<String> = HashSet::default();
 
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
@@ -361,7 +361,7 @@ impl SimulatedNode {
                         };
 
                         // Nominate pending values submitted to our node
-                        if (nominated_values.len() < max_pending_values_to_nominate)
+                        if (slot_nominated_values.len() < max_pending_values_to_nominate)
                             && !pending_values.is_empty()
                         {
                             let mut values: Vec<String> = pending_values.iter().cloned().collect();
@@ -375,7 +375,7 @@ impl SimulatedNode {
                             }
 
                             let values_to_nominate: HashSet<String> = selected_values
-                                .difference(&nominated_values)
+                                .difference(&slot_nominated_values)
                                 .cloned()
                                 .collect();
 
@@ -396,7 +396,7 @@ impl SimulatedNode {
                                 };
 
                                 for v in values_to_nominate.iter().cloned() {
-                                    nominated_values.insert(v);
+                                    slot_nominated_values.insert(v);
                                 }
 
                                 if let Some(outgoing_msg) = outgoing_msg {
@@ -481,7 +481,7 @@ impl SimulatedNode {
 
                             pending_values = remaining_values;
                             current_slot += 1;
-                            nominated_values = HashSet::default();
+                            slot_nominated_values = HashSet::default();
                         }
                     }
                     log::info!(
