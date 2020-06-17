@@ -146,7 +146,7 @@ impl SimulatedNetwork {
             let (node, join_handle_option) = SimulatedNode::new(
                 format!("{}-{}", network.name, node_options.id.clone()),
                 node_options.id.clone(),
-                node_options.quorum_set,
+                node_options.quorum_set.clone(),
                 test_options,
                 Arc::new( move |logger, msg| {
                     SimulatedNetwork::broadcast_msg(
