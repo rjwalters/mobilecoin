@@ -193,7 +193,7 @@ impl SimulatedNetwork {
 
         // join the threads; this is a bit of a hack to get around
         // mutability headaches
-        for node_id in self.shared_senders.keys() {
+        for node_id in shared_senders.keys() {
             self.thread_handles
                 .remove(node_id)
                 .expect("failed to get handle option from thread_handles")
