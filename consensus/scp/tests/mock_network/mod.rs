@@ -455,7 +455,7 @@ impl SimulatedNode {
 
                             locked_shared_data.ledger.push(new_block);
 
-                            let ledger.size = locked_shared_data.ledger_size();;
+                            let ledger_size = locked_shared_data.ledger_size();;
 
                             drop(locked_shared_data);
 
@@ -465,7 +465,7 @@ impl SimulatedNode {
                                 node_id,
                                 current_slot as SlotIndex,
                                 new_block_length,
-                                total_values,
+                                ledger_size,
                                 pending_values.len(),
                             );
 
