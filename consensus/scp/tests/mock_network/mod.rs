@@ -321,7 +321,6 @@ impl SimulatedNode {
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
         let mut slot_nominated_values: HashSet<String> = HashSet::default();
 
-        let mut externalized_values: HashSet<String> = HashSet::default();
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
 
