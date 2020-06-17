@@ -673,6 +673,15 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     test_options.values_to_submit,
                     node_id
                 );
+
+                if num_externalized_values > test_options.values_to_submit {
+                    log::warn!(
+                        simulation.logger,
+                        "( testing ) externalized extra values at node {}",
+                        node_id
+                    );
+                }
+
                 break;
             }
 
@@ -688,7 +697,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             }
         }
 
-        // check that all of the submitted values were externalized
+        // check that all submitted values are externalized at least once
         // duplicate values are possible depending on validity_fn
         let externalized_values_hashset = simulation
             .get_ledger(&node_id)
