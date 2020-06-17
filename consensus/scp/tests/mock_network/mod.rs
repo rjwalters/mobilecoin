@@ -182,11 +182,11 @@ impl SimulatedNetwork {
             .expect("lock failed on nodes_map in stop_all");
 
         for (node_id, node) in nodes_map.iter_mut() {
-            log::trace!(logger, "sending stop to {}", node_id);
+            log::trace!(self.logger, "sending stop to {}", node_id);
 
             node.send_stop();
 
-            log::trace!(logger, "joining {}", node_id);
+            log::trace!(self.logger, "joining {}", node_id);
 
             self.handle_map
                 .remove(node_id)
