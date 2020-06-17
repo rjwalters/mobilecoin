@@ -221,7 +221,7 @@ impl SimulatedNetwork {
             .get(node_id)
             .expect("could not find node_id in nodes_map")
             .lock()
-            .expect("lock failed on shared_data getting clone")
+            .expect("lock failed on shared_data getting ledger")
             .ledger
             .clone()
     }
@@ -231,10 +231,8 @@ impl SimulatedNetwork {
             .get(node_id)
             .expect("could not find node_id in nodes_map")
             .lock()
-            .expect("lock failed on shared_data getting clone")
-            .ledger
-            .iter()
-            .fold(0, |acc, block| acc + block.len())
+            .expect("lock failed on shared_data getting ledger size")
+            .ledger_size()
     }
 
     fn broadcast_msg(
@@ -276,6 +274,12 @@ enum SimulatedNodeTaskMessage {
 #[derive(Clone)]
 struct SimulatedNodeSharedData {
     pub ledger: Vec<Vec<String>>,
+}
+
+impl SimulatedNodeSharedData {
+    pub fn ledger_size(&self) -> usize {
+        self.ledger.iter().fold(0, |acc, block| acc + block.len())
+    }
 }
 
 // A simulated validator node
@@ -376,6 +380,7 @@ impl SimulatedNode {
                             }
 
                             if !values_to_nominate.is_empty() {
+
                                 for v in values_to_nominate.iter() {
                                     slot_nominated_values.insert(v.clone());
                                 }
@@ -442,18 +447,15 @@ impl SimulatedNode {
                                 pending_values.remove(v);
                             }
 
+                            let new_block_length = new_block.len();
+
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
                                 .expect("thread_shared_data lock failed");
 
-                            let new_block_length = new_block.len();
-
                             locked_shared_data.ledger.push(new_block);
 
-                            let total_values = locked_shared_data
-                                .ledger
-                                .iter()
-                                .fold(0, |acc, block| acc + block.len());
+                            let ledger.size = locked_shared_data.ledger_size();;
 
                             drop(locked_shared_data);
 
