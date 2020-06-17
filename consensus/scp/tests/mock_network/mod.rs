@@ -537,7 +537,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     );
 
     // get a vector of the node_ids
-    let mut node_ids: Vec<NodeID> = network.nodes.iter().map(|n| n.id).collect();
+    let node_ids: Vec<NodeID> = network.nodes.iter().map(|n| n.id.clone()).collect();
 
     // check that all ledgers start empty
     for n in 0..network.nodes.len() {
