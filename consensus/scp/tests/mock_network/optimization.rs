@@ -23,7 +23,7 @@ use std::{
 const OPTIMIZER_ITERATIONS: usize = 20;
 
 // values to submit for consensus
-const VALUES_TO_SUBMIT: usize = 500;
+const VALUES_TO_SUBMIT: usize = 1000;
 
 // panic if any iteration requires more than the allowed time
 const ALLOWED_TEST_TIME: Duration = Duration::from_secs(90);
