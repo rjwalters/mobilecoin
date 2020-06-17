@@ -44,7 +44,8 @@ pub struct TestOptions {
     /// multiple places in the ledger, and that the ledger will contain more than values_to_submit
     pub values_to_submit: usize,
 
-    /// Approximate rate that values are submitted to nodes.
+    /// Approximate rate that values are submitted to nodes. Unless we are testing slow submission
+    /// is it better to set this quite high.
     pub submissions_per_sec: u64,
 
     /// We nominate up to this many values from our pending set per slot.
@@ -72,7 +73,7 @@ impl TestOptions {
         Self {
             submit_in_parallel: true,
             values_to_submit: 5000,
-            submissions_per_sec: 10000,
+            submissions_per_sec: 20000,
             max_pending_values_to_nominate: 100,
             allowed_test_time: Duration::from_secs(300),
             log_flush_delay: Duration::from_millis(50),
@@ -86,17 +87,22 @@ impl TestOptions {
 // Describes one simulated node
 #[derive(Clone)]
 pub struct NodeOptions {
-    peers: Vec<u32>,
-    validators: Vec<u32>,
-    k: u32,
+    /// This node's id
+    id: NodeID,
+
+    /// The nodes to which this node broadcasts
+    peers: HashSet<NodeID>,
+
+    /// This node's quorum set
+    quorum_set: QuorumSet,
 }
 
 impl NodeOptions {
-    pub fn new(peers: Vec<u32>, validators: Vec<u32>, k: u32) -> Self {
+    pub fn new(id: NodeID, peers: HashSet<NodeID>, quorum_set: QuorumSet) -> Self {
         Self {
+            id,
             peers,
-            validators,
-            k,
+            quorum_set,
         }
     }
 }
@@ -131,49 +137,39 @@ impl SimulatedNetwork {
             logger: logger.clone(),
         };
 
-        for (node_index, options_for_this_node) in network.nodes.iter().enumerate() {
-            let validators = options_for_this_node
-                .validators
-                .iter()
-                .map(|id| test_utils::test_node_id(*id as u32))
-                .collect::<Vec<NodeID>>();
+        for node_options in network.nodes.iter().enumerate() {
 
-            let qs = QuorumSet::new_with_node_ids(options_for_this_node.k, validators);
-
-            let peers = options_for_this_node
-                .peers
-                .iter()
-                .map(|id| test_utils::test_node_id(*id as u32))
-                .collect::<HashSet<NodeID>>();
-
-            let node_id = test_utils::test_node_id(node_index as u32);
-
-            assert!(!peers.contains(&node_id));
+            assert!(!options_for_this_node.peers.contains(&node_options.id));
 
             let nodes_map_clone = Arc::clone(&simulation.nodes_map);
 
             let (node, join_handle_option) = SimulatedNode::new(
                 format!("{}-{}", network.name, node_index),
-                node_id.clone(),
-                qs,
+                node_options.id.clone(),
+                node_options.quorum_set,
                 test_options,
-                Arc::new(move |logger, msg| {
-                    SimulatedNetwork::broadcast_msg(logger, &nodes_map_clone, &peers, msg)
+                Arc::new( move |logger, msg| {
+                    SimulatedNetwork::broadcast_msg(
+                        logger,
+                        &Arc::clone(&simulation.nodes_map),
+                        &options_for_this_node.peers,
+                        msg
+                    )
                 }),
                 logger.new(o!("mc.local_node_id" => node_id.to_string())),
             );
             simulation.handle_map.insert(
-                node_id.clone(),
+                node_options.id.clone(),
                 join_handle_option.expect("thread failed to spawn"),
             );
             simulation
                 .shared_data_map
-                .insert(node_id.clone(), node.shared_data.clone());
+                .insert(node_options.id.clone(), node.shared_data.clone());
             simulation
                 .nodes_map
                 .lock()
                 .expect("lock failed on nodes_map inserting node")
-                .insert(node_id.clone(), node);
+                .insert(node_options.id.clone(), node);
         }
 
         simulation
@@ -540,15 +536,12 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
         test_options.values_to_submit
     );
 
-    // pre-compute node_ids
-    let mut node_ids = Vec::<NodeID>::with_capacity(network.nodes.len());
-    for n in 0..network.nodes.len() {
-        node_ids.push(test_utils::test_node_id(n as u32));
-    }
+    // get a vector of the node_ids
+    let mut node_ids = network.nodes.iter().map(|n| n.id).collect();
 
     // check that all ledgers start empty
-    for node_id in node_ids.iter() {
-        assert!(simulation.get_ledger_size(&node_id) == 0);
+    for n in 0..network.nodes.len()
+        assert!(simulation.get_ledger_size(&node_ids[n]) == 0);
     }
 
     // push values

@@ -26,7 +26,7 @@ const OPTIMIZER_ITERATIONS: usize = 20;
 const VALUES_TO_SUBMIT: usize = 1000;
 
 // panic if any iteration requires more than the allowed time
-const ALLOWED_TEST_TIME: Duration = Duration::from_secs(90);
+const ALLOWED_TEST_TIME: Duration = Duration::from_secs(180);
 
 // Optimization range limits
 const MIN_SUBMISSIONS_PER_SEC: f64 = 5000.0;
