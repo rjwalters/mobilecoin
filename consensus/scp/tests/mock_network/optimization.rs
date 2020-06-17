@@ -178,7 +178,7 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
     let mut coordinates = vec![c0,c1,c2];
     for i in 0..OPTIMIZER_ITERATIONS {
         let (min,max) = input_interval[d];
-        let v_i: f64 = min + (i as f64)/OPTIMIZER_ITERATIONS*max;
+        let v_i: f64 = min + (i as f64) / (OPTIMIZER_ITERATIONS as f64) * max;
         let mut v = vec![c0,c1,c2];
         v[d] = v_i;
         let runtime = f(&v);
@@ -205,7 +205,7 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
 
 // optimize performance over submission rate, submissions per slot, and scp timebase
 pub fn optimize(network: &mock_network::Network, parameters_to_vary: Vec<bool>, logger: Logger) {
-    let dimensions = parameters_to_vary.iter().fold(0, |d, is_varied| d + is_varied as usize)
+    let dimensions = parameters_to_vary.iter().fold(0, |d, is_varied| d + *is_varied as usize)
     if dimensions == 0 {
         return; // probably not intended?
     }
