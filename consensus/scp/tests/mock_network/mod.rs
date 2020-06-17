@@ -540,7 +540,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     let mut node_ids = network.nodes.iter().map(|n| n.id).collect();
 
     // check that all ledgers start empty
-    for n in 0..network.nodes.len()
+    for n in 0..network.nodes.len() {
         assert!(simulation.get_ledger_size(&node_ids[n]) == 0);
     }
 
