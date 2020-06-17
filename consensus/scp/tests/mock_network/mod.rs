@@ -116,7 +116,7 @@ impl Network {
 
 pub struct SimulatedNetwork {
     thread_handles: HashMap<NodeID, JoinHandle<()>>,
-    shared_senders: Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,
+    shared_senders: Arc<Mutex<HashMap<NodeID, SimulatedNodeSharedSender>>>,
     shared_data: HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedData>>>,
     logger: Logger,
 }
@@ -185,10 +185,7 @@ impl SimulatedNetwork {
             .expect("lock failed on shared_senders in stop_all");
 
         for shared_sender in shared_senders.values_mut() {
-            shared_sender
-                .lock()
-                .expect("lock failed on sender in stop_all")
-                .send_stop();
+            shared_sender.send_stop();
         }
 
         // join the threads; this is a bit of a hack to get around
@@ -208,8 +205,6 @@ impl SimulatedNetwork {
             .expect("lock failed on shared_senders in push_value")
             .get(node_id)
             .expect("could not find node_id in shared_senders")
-            .lock()
-            .expect("lock failed on sender in push_value")
             .send_value(value);
     }
 
@@ -234,7 +229,7 @@ impl SimulatedNetwork {
 
     fn broadcast_msg(
         logger: Logger,
-        shared_senders: &Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,
+        shared_senders: &Arc<Mutex<HashMap<NodeID, SimulatedNodeSharedSender>>>,
         peers: &HashSet<NodeID>,
         msg: Msg<String>,
     ) {
@@ -250,8 +245,6 @@ impl SimulatedNetwork {
             shared_senders
                 .get_mut(&peer_id)
                 .expect("failed to get sender from shared_senders")
-                .lock()
-                .expect("lock failed on sender in broadcast")
                 .send_msg(amsg.clone());
         }
     }
@@ -331,7 +324,7 @@ impl SimulatedNodeSharedSender {
 
 // A simulated validator node in a consensus network
 struct SimulatedNode {
-    shared_sender: Arc<Mutex<SimulatedNodeSharedSender>>,
+    shared_sender: SimulatedNodeSharedSender,
     shared_data: Arc<Mutex<SimulatedNodeSharedData>>,
 }
 
@@ -347,7 +340,7 @@ impl SimulatedNode {
         let (sender, receiver) = crossbeam_channel::unbounded();
 
         let simulated_node = Self {
-            shared_sender: Arc::new(Mutex::new(SimulatedNodeSharedSender { sender })),
+            shared_sender: SimulatedNodeSharedSender { sender },
             shared_data: Arc::new(Mutex::new(SimulatedNodeSharedData { ledger: Vec::new() })),
         };
 
