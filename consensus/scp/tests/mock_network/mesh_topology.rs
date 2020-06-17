@@ -8,6 +8,8 @@
 
 use crate::mock_network;
 
+use mc_common::{HashSet, NodeID,};
+
 ///////////////////////////////////////////////////////////////////////////////
 /// Mesh tests
 /// (N nodes, each node has all other nodes as it's validators)
