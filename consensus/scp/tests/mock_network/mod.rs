@@ -141,6 +141,7 @@ impl SimulatedNetwork {
             assert!(!node_options.peers.contains(&node_options.id));
 
             let nodes_map_clone = Arc::clone(&simulation.nodes_map);
+            let peers_clone = node_options.peers.clone();
 
             let (node, join_handle_option) = SimulatedNode::new(
                 format!("{}-{}", network.name, node_options.id.clone()),
@@ -150,8 +151,8 @@ impl SimulatedNetwork {
                 Arc::new( move |logger, msg| {
                     SimulatedNetwork::broadcast_msg(
                         logger,
-                        &Arc::clone(&simulation.nodes_map),
-                        &node_options.peers,
+                        &nodes_map_clone,
+                        &peers_clone,
                         msg
                     )
                 }),
