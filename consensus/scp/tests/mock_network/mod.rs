@@ -319,6 +319,7 @@ impl SimulatedNode {
 
         // See byzantine_ledger.rs#L626
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
+        let mut slot_nominated_values: HashSet<String> = HashSet::default();
 
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
@@ -360,19 +361,31 @@ impl SimulatedNode {
                         };
 
                         // Nominate pending values submitted to our node
-                        if !pending_values.is_empty() {
+                        if (slot_nominated_values.len() < max_pending_values_to_nominate)
+                            && !pending_values.is_empty()
+                        {
                             let mut values: Vec<String> = pending_values.iter().cloned().collect();
                             values.sort();
                             values.truncate(max_pending_values_to_nominate);
 
-                            if !values.is_empty() {
+                            // mc_common::HashSet does not support extend because of our enclave-safe HasherBuilder
+                            let mut values_to_nominate: HashSet<String> = values.iter().cloned().collect()
+                            for v in slot_nominated_values {
+                                values_to_nominate.remove(v);
+                            }
+
+                            if !values_to_nominate.is_empty() {
+                                for v in values_to_nominate {
+                                    slot_nominated_values.insert(v.clone());
+                                }
+
                                 let outgoing_msg: Option<Msg<String>> = {
                                     thread_local_node
                                         .lock()
                                         .expect("thread_local_node lock failed when nominating value")
                                         .nominate(
                                             current_slot as SlotIndex,
-                                            BTreeSet::from_iter(values),
+                                            BTreeSet::from_iter(values_to_nominate)
                                         )
                                         .expect("node.nominate() failed")
                                 };
@@ -454,6 +467,7 @@ impl SimulatedNode {
                             );
 
                             current_slot += 1;
+                            slot_nominated_values = HashSet::default();
                         }
                     }
                     log::info!(
