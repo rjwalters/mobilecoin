@@ -232,7 +232,7 @@ impl SimulatedNetwork {
 
     fn broadcast_msg(
         logger: Logger,
-        shared_senders: &Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,,
+        shared_senders: &Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,
         peers: &HashSet<NodeID>,
         msg: Msg<String>,
     ) {
