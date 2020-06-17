@@ -304,7 +304,7 @@ impl SimulatedNode {
             shared_data: Arc::new(Mutex::new(SimulatedNodeSharedData { ledger: Vec::new() })),
         };
 
-        let thread_local_node = Node::new(
+        let mut thread_local_node = Node::new(
             node_id.clone(),
             quorum_set,
             test_options.validity_fn.clone(),
