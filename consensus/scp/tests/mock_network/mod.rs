@@ -152,7 +152,7 @@ impl SimulatedNetwork {
 
             let shared_senders_clone = Arc::clone(&simulation.shared_senders);
 
-            let (node, thread_handle) = SimulatedNode::new(
+            let (node, join_handle_option) = SimulatedNode::new(
                 format!("{}-{}", network.name, node_index),
                 node_id.clone(),
                 qs,
@@ -164,7 +164,7 @@ impl SimulatedNetwork {
             );
             simulation
                 .thread_handles
-                .insert(node_id.clone(), thread_handle);
+                .insert(node_id.clone(), join_handle_option);
             simulation
                 .shared_data
                 .insert(node_id.clone(), node.shared_data.clone());
@@ -184,7 +184,7 @@ impl SimulatedNetwork {
             .lock()
             .expect("lock failed on shared_senders in stop_all");
 
-        for shared_sender in shared_senders.iter_mut() {
+        for (_node_id, shared_sender) in shared_senders.iter_mut() {
             shared_sender
                 .lock()
                 .expect("lock failed on sender in stop_all");
@@ -192,8 +192,9 @@ impl SimulatedNetwork {
         }
 
         // join the threads
-        for thread_handle in self.thread_handles.iter_mut() {
-            thread_handle
+        for (_node_id, join_handle_option) in self.thread_handles.iter_mut() {
+            join_handle_option
+                .expect("join handle missing?")
                 .join()
                 .expect("SimulatedNode thread join failed");
         }
@@ -344,7 +345,7 @@ impl SimulatedNode {
         let (sender, receiver) = crossbeam_channel::unbounded();
 
         let simulated_node = Self {
-            sender,
+            shared_sender: Arc::new(Mutex::new(SimulatedNodeSharedSender { sender })),
             shared_data: Arc::new(Mutex::new(SimulatedNodeSharedData { ledger: Vec::new() })),
         };
 
