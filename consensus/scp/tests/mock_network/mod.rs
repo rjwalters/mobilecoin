@@ -83,19 +83,6 @@ impl TestOptions {
     }
 }
 
-// Describes a network of nodes for simulation
-#[derive(Clone)]
-pub struct Network {
-    name: String,
-    nodes: Vec<NodeOptions>,
-}
-
-impl Network {
-    pub fn new(name: String, nodes: Vec<NodeOptions>) -> Self {
-        Self { name, nodes }
-    }
-}
-
 // Describes one simulated node
 #[derive(Clone)]
 pub struct NodeOptions {
@@ -114,10 +101,23 @@ impl NodeOptions {
     }
 }
 
+// Describes a network of nodes for simulation
+#[derive(Clone)]
+pub struct Network {
+    name: String,
+    nodes: Vec<NodeOptions>,
+}
+
+impl Network {
+    pub fn new(name: String, nodes: Vec<NodeOptions>) -> Self {
+        Self { name, nodes }
+    }
+}
+
 pub struct SimulatedNetwork {
-    nodes_map: Arc<Mutex<HashMap<NodeID, SimulatedNode>>>,
     thread_handles: HashMap<NodeID, Option<JoinHandle<()>>>,
-    nodes_shared_data: HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedData>>>,
+    shared_senders: Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,
+    shared_data: HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedData>>>,
     logger: Logger,
 }
 
@@ -125,9 +125,9 @@ impl SimulatedNetwork {
     // creates a new network simulation
     pub fn new(network: &Network, test_options: &TestOptions, logger: Logger) -> Self {
         let mut simulation = SimulatedNetwork {
-            nodes_map: Arc::new(Mutex::new(HashMap::default())),
             thread_handles: HashMap::default(),
-            nodes_shared_data: HashMap::default(),
+            shared_senders: Arc::new(Mutex::new(HashMap::default())),
+            shared_data: HashMap::default(),
             logger: logger.clone(),
         };
 
@@ -150,18 +150,15 @@ impl SimulatedNetwork {
 
             assert!(!peers.contains(&node_id));
 
-            let nodes_map_clone: Arc<Mutex<HashMap<NodeID, SimulatedNode>>> =
-                { Arc::clone(&simulation.nodes_map) };
-
-            let thread_name_for_this_node = format!("{}-{}", network.name, node_index);
+            let shared_senders_clone = Arc::clone(&simulation.shared_senders);
 
             let (node, thread_handle) = SimulatedNode::new(
-                thread_name_for_this_node,
+                format!("{}-{}", network.name, node_index),
                 node_id.clone(),
                 qs,
                 test_options,
                 Arc::new(move |logger, msg| {
-                    SimulatedNetwork::broadcast_msg(logger, &nodes_map_clone, &peers, msg)
+                    SimulatedNetwork::broadcast_msg(logger, &shared_senders_clone, &peers, msg)
                 }),
                 logger.new(o!("mc.local_node_id" => node_id.to_string())),
             );
@@ -169,57 +166,54 @@ impl SimulatedNetwork {
                 .thread_handles
                 .insert(node_id.clone(), thread_handle);
             simulation
-                .nodes_shared_data
+                .shared_data
                 .insert(node_id.clone(), node.shared_data.clone());
             simulation
-                .nodes_map
+                .shared_senders
                 .lock()
-                .expect("lock failed on nodes_map inserting node")
-                .insert(node_id.clone(), node);
+                .expect("lock failed on shared_senders inserting new sender")
+                .insert(node_id.clone(), node.shared_sender.clone());
         }
 
         simulation
     }
 
     fn stop_all(&mut self) {
-        let mut nodes_map = self
-            .nodes_map
+        let mut shared_senders = self
+            .shared_senders
             .lock()
-            .expect("lock failed on nodes_map in stop_all");
-        let num_nodes = nodes_map.len();
-        for node_num in 0..num_nodes {
-            nodes_map
-                .get_mut(&test_utils::test_node_id(node_num as u32))
-                .expect("could not find node_id in nodes_map")
+            .expect("lock failed on shared_senders in stop_all");
+
+        for shared_sender in shared_senders.iter_mut() {
+            shared_sender
+                .lock()
+                .expect("lock failed on sender in stop_all");
                 .send_stop();
         }
-        drop(nodes_map);
 
-        // now join the threads
-        for node_num in 0..num_nodes {
-            let node_id = &test_utils::test_node_id(node_num as u32);
-            self.thread_handles
-                .remove(node_id)
-                .expect("failed to get handle option from thread_handles")
-                .expect("thread handle is missing")
+        // join the threads
+        for thread_handle in self.thread_handles.iter_mut() {
+            thread_handle
                 .join()
-                .expect("SimulatedNode join failed");
+                .expect("SimulatedNode thread join failed");
         }
     }
 
     fn push_value(&self, node_id: &NodeID, value: &str) {
-        self.nodes_map
+        self.shared_senders
             .lock()
-            .expect("lock failed on nodes_map pushing value")
+            .expect("lock failed on shared_senders in push_value");
             .get(node_id)
-            .expect("could not find node_id in nodes_map")
+            .expect("could not find node_id in shared_senders")
+            .lock()
+            .expect("lock failed on sender in push_value");
             .send_value(value);
     }
 
     fn get_ledger(&self, node_id: &NodeID) -> Vec<Vec<String>> {
-        self.nodes_shared_data
+        self.shared_data
             .get(node_id)
-            .expect("could not find node_id in nodes_shared_data")
+            .expect("could not find node_id in shared_data")
             .lock()
             .expect("lock failed on shared_data getting ledger")
             .ledger
@@ -227,9 +221,9 @@ impl SimulatedNetwork {
     }
 
     fn get_ledger_size(&self, node_id: &NodeID) -> usize {
-        self.nodes_shared_data
+        self.shared_data
             .get(node_id)
-            .expect("could not find node_id in nodes_shared_data")
+            .expect("could not find node_id in shared_data")
             .lock()
             .expect("lock failed on shared_data getting ledger size")
             .ledger_size()
@@ -237,22 +231,24 @@ impl SimulatedNetwork {
 
     fn broadcast_msg(
         logger: Logger,
-        nodes_map: &Arc<Mutex<HashMap<NodeID, SimulatedNode>>>,
+        shared_senders: &Arc<Mutex<HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedSender>>>>>,,
         peers: &HashSet<NodeID>,
         msg: Msg<String>,
     ) {
-        let mut nodes_map = nodes_map
+        let mut shared_senders = shared_senders
             .lock()
-            .expect("lock failed on nodes_map in broadcast");
+            .expect("lock failed on shared_senders in broadcast");
 
         log::trace!(logger, "(broadcast) {}", msg.to_display());
 
         let amsg = Arc::new(msg);
 
         for peer_id in peers {
-            nodes_map
+            shared_senders
                 .get_mut(&peer_id)
-                .expect("failed to get peer from nodes_map")
+                .expect("failed to get sender from shared_senders")
+                .lock()
+                .expect("lock failed on sender in broadcast")
                 .send_msg(amsg.clone());
         }
     }
@@ -264,13 +260,7 @@ impl Drop for SimulatedNetwork {
     }
 }
 
-enum SimulatedNodeTaskMessage {
-    Value(String),
-    Msg(Arc<Msg<String>>),
-    StopTrigger,
-}
-
-// Node data shared between threads
+// The ledger data is shared with the worker thread to collect externalized values
 #[derive(Clone)]
 struct SimulatedNodeSharedData {
     pub ledger: Vec<Vec<String>>,
@@ -282,9 +272,63 @@ impl SimulatedNodeSharedData {
     }
 }
 
-// A simulated validator node
+// Messages to be sent over a SimulatedNodeSharedSender
+enum SimulatedNodeTaskMessage {
+    Value(String),
+    Msg(Arc<Msg<String>>),
+    StopTrigger,
+}
+
+// The channel sender is shared with the worker thread for broadcast
+#[derive(Clone)]
+struct SimulatedNodeSharedSender{
+    pub sender: crossbeam_channel::Sender<SimulatedNodeTaskMessage>,
+}
+
+impl SimulatedNodeSharedSender {
+    pub fn send_value(&self, value: &str) {
+        match self
+            .sender
+            .try_send(SimulatedNodeTaskMessage::Value(value.to_owned()))
+        {
+            Ok(_) => {}
+            Err(err) => match err {
+                crossbeam_channel::TrySendError::Disconnected(_) => {}
+                _ => {
+                    panic!("send_value failed: {:?}", err);
+                }
+            },
+        }
+    }
+
+    pub fn send_msg(&self, msg: Arc<Msg<String>>) {
+        match self.sender.try_send(SimulatedNodeTaskMessage::Msg(msg)) {
+            Ok(_) => {}
+            Err(err) => match err {
+                crossbeam_channel::TrySendError::Disconnected(_) => {}
+                _ => {
+                    panic!("send_msg failed: {:?}", err);
+                }
+            },
+        }
+    }
+
+    pub fn send_stop(&self) {
+        match self.sender.try_send(SimulatedNodeTaskMessage::StopTrigger) {
+            Ok(_) => {}
+            Err(err) => match err {
+                crossbeam_channel::TrySendError::Disconnected(_) => {}
+                _ => {
+                    panic!("send_stop failed: {:?}", err);
+                }
+            },
+        }
+    }
+}
+
+// A simulated validator node in a consensus network
 struct SimulatedNode {
-    sender: crossbeam_channel::Sender<SimulatedNodeTaskMessage>,
+    shared_sender: Arc<Mutex<SimulatedNodeSharedSender>>,
     shared_data: Arc<Mutex<SimulatedNodeSharedData>>,
 }
 
@@ -461,47 +505,6 @@ impl SimulatedNode {
 
         (simulated_node, thread_handle)
     }
-
-    /// Push value to this node's consensus task.
-    pub fn send_value(&self, value: &str) {
-        match self
-            .sender
-            .try_send(SimulatedNodeTaskMessage::Value(value.to_owned()))
-        {
-            Ok(_) => {}
-            Err(err) => match err {
-                crossbeam_channel::TrySendError::Disconnected(_) => {}
-                _ => {
-                    panic!("send_value failed: {:?}", err);
-                }
-            },
-        }
-    }
-
-    /// Feed message from the network to this node's consensus task.
-    pub fn send_msg(&self, msg: Arc<Msg<String>>) {
-        match self.sender.try_send(SimulatedNodeTaskMessage::Msg(msg)) {
-            Ok(_) => {}
-            Err(err) => match err {
-                crossbeam_channel::TrySendError::Disconnected(_) => {}
-                _ => {
-                    panic!("send_msg failed: {:?}", err);
-                }
-            },
-        }
-    }
-
-    pub fn send_stop(&self) {
-        match self.sender.try_send(SimulatedNodeTaskMessage::StopTrigger) {
-            Ok(_) => {}
-            Err(err) => match err {
-                crossbeam_channel::TrySendError::Disconnected(_) => {}
-                _ => {
-                    panic!("send_stop failed: {:?}", err);
-                }
-            },
-        }
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -548,17 +551,9 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
         test_options.values_to_submit
     );
 
-    let num_nodes: usize = {
-        simulation
-            .nodes_map
-            .lock()
-            .expect("lock failed on nodes_map getting length")
-            .len()
-    };
-
     // pre-compute node_ids
-    let mut node_ids = Vec::<NodeID>::with_capacity(num_nodes);
-    for n in 0..num_nodes {
+    let mut node_ids = Vec::<NodeID>::with_capacity(network.nodes.len());
+    for n in 0..network.nodes.len() {
         node_ids.push(test_utils::test_node_id(n as u32));
     }
 
@@ -574,12 +569,12 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
 
         if test_options.submit_in_parallel {
             // simulate broadcast of values to all nodes in parallel
-            for n in 0..num_nodes {
+            for n in 0..network.nodes.len() {
                 simulation.push_value(&node_ids[n], &values[i]);
             }
         } else {
             // submit values to nodes in sequence
-            let n = i % num_nodes;
+            let n = i % network.nodes.len();
             simulation.push_value(&node_ids[n], &values[i]);
         }
 
