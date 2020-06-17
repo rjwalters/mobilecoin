@@ -192,10 +192,13 @@ impl SimulatedNetwork {
         }
 
         // join the threads
-        for join_handle_option in self.thread_handles.values_mut() {
-            if let Some(handle) = join_handle_option {
-                handle.clone().join().expect("SimulatedNode thread join failed");
-            }
+        for node_id in self.thread_handles.keys() {
+            self.thread_handles
+                .remove(node_id)
+                .expect("failed to get handle option from thread_handles")
+                .expect("handle is missing")
+                .join()
+                .expect("SimulatedNode thread join failed");
         }
     }
 
