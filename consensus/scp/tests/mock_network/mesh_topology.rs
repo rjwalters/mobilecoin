@@ -8,8 +8,8 @@
 
 use crate::mock_network;
 
-use mc_common::{HashSet, NodeID,};
-use mc_consensus_scp::{quorum_set::QuorumSet, test_utils};
+use mc_common::NodeID;
+use mc_consensus_scp::test_utils;
 
 ///////////////////////////////////////////////////////////////////////////////
 /// Mesh tests
