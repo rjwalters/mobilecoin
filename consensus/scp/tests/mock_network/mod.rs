@@ -194,7 +194,7 @@ impl SimulatedNetwork {
         // join the threads
         for join_handle_option in self.thread_handles.values_mut() {
             if let Some(handle) = join_handle_option {
-                handle.join()..expect("SimulatedNode thread join failed");
+                handle.join().expect("SimulatedNode thread join failed");
             }
         }
     }
