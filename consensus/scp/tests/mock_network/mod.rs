@@ -447,14 +447,10 @@ impl SimulatedNode {
                         };
 
                         if !new_block.is_empty() {
+                            // stop nominating the values we've externalized
                             for v in &new_block {
-                                externalized_values.insert(v.clone());
+                                pending_values.remove(v);
                             }
-
-                            let remaining_values: HashSet<String> = pending_values
-                                .difference(&externalized_values)
-                                .cloned()
-                                .collect();
 
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
@@ -478,10 +474,9 @@ impl SimulatedNode {
                                 current_slot as SlotIndex,
                                 new_block_length,
                                 total_values,
-                                remaining_values.len(),
+                                pending_values.len(),
                             );
 
-                            pending_values = remaining_values;
                             current_slot += 1;
                             slot_nominated_values = HashSet::default();
                         }
