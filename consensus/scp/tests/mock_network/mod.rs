@@ -181,12 +181,13 @@ impl SimulatedNetwork {
             .lock()
             .expect("lock failed on nodes_map in stop_all");
 
-        for (_node_id, node) in nodes_map.iter_mut() {
-            node.send_stop();
-        }
+        for (node_id, node) in nodes_map.iter_mut() {
+            log::trace!(logger, "sending stop to {}", node_id);
 
-        // now join the threads
-        for node_id in nodes_map.keys() {
+            node.send_stop();
+
+            log::trace!(logger, "joining {}", node_id);
+
             self.handle_map
                 .remove(node_id)
                 .expect("thread handle is missing")
@@ -700,7 +701,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     }
 
     // drop the simulation here so that MESSAGES log statements appear before results
-    // drop(simulation);
+    drop(simulation);
 
     // csv for scripting use
     log::info!(
