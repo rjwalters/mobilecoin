@@ -193,7 +193,7 @@ impl SimulatedNetwork {
 
         // join the threads
         for join_handle_option in self.thread_handles.values_mut() {
-            join_handle_option
+            *join_handle_option
                 .expect("join handle missing?")
                 .join()
                 .expect("SimulatedNode thread join failed");
