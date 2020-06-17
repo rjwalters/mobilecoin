@@ -700,7 +700,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     }
 
     // drop the simulation here so that MESSAGES log statements appear before results
-    drop(simulation);
+    // drop(simulation);
 
     // csv for scripting use
     log::info!(
