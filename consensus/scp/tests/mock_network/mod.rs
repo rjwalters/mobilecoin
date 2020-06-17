@@ -387,8 +387,6 @@ impl SimulatedNode {
 
                                 let outgoing_msg: Option<Msg<String>> = {
                                     thread_local_node
-                                        .lock()
-                                        .expect("thread_local_node lock failed when nominating value")
                                         .nominate(
                                             current_slot as SlotIndex,
                                             BTreeSet::from_iter(values_to_nominate)
@@ -407,8 +405,6 @@ impl SimulatedNode {
                         for msg in incoming_msgs.iter() {
                             let outgoing_msg: Option<Msg<String>> = {
                                 thread_local_node
-                                    .lock()
-                                    .expect("thread_local_node lock failed when handling msg")
                                     .handle(msg)
                                     .expect("node.handle_msg() failed")
                             };
@@ -422,8 +418,6 @@ impl SimulatedNode {
                         // Process timeouts (for all slots)
                         let timeout_msgs: Vec<Msg<String>> = {
                             thread_local_node
-                                .lock()
-                                .expect("thread_local_node lock failed when processing timeouts")
                                 .process_timeouts()
                                 .into_iter()
                                 .collect()
@@ -436,8 +430,6 @@ impl SimulatedNode {
                         // Check if the current slot is done
                         let new_block:Vec<String> = {
                             thread_local_node
-                              .lock()
-                              .expect("thread_local_node lock failed when collecting externalized values")
                               .get_externalized_values(current_slot as SlotIndex)
                         };
 
