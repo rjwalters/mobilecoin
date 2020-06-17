@@ -175,14 +175,13 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
     let mut c2 = default_options.scp_timebase.as_millis() as f64;
 
     let mut min_value = f64::MAX;
-    let mut coordinates: [f64] = vec![c0,c1,c2];
+    let mut coordinates = vec![c0,c1,c2];
     for i in 0..OPTIMIZER_ITERATIONS {
         let (min,max) = input_interval[d];
         let v_i: f64 = min + (i as f64)/OPTIMIZER_ITERATIONS*max;
-        // parameters for this iteration
-        let mut v:[f64] =  vec![c0,c1,c2];
+        let mut v = vec![c0,c1,c2];
         v[d] = v_i;
-        let runtime = f(v);
+        let runtime = f(&v);
         if runtime <= min_value{
             min_value = runtime;
             coordinates = v;
