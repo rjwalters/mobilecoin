@@ -187,7 +187,7 @@ impl SimulatedNetwork {
         for (_node_id, shared_sender) in shared_senders.iter_mut() {
             shared_sender
                 .lock()
-                .expect("lock failed on sender in stop_all");
+                .expect("lock failed on sender in stop_all")
                 .send_stop();
         }
 
@@ -203,11 +203,11 @@ impl SimulatedNetwork {
     fn push_value(&self, node_id: &NodeID, value: &str) {
         self.shared_senders
             .lock()
-            .expect("lock failed on shared_senders in push_value");
+            .expect("lock failed on shared_senders in push_value")
             .get(node_id)
             .expect("could not find node_id in shared_senders")
             .lock()
-            .expect("lock failed on sender in push_value");
+            .expect("lock failed on sender in push_value")
             .send_value(value);
     }
 
