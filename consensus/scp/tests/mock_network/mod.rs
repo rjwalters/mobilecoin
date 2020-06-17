@@ -369,13 +369,14 @@ impl SimulatedNode {
                             values.truncate(max_pending_values_to_nominate);
 
                             // mc_common::HashSet does not support extend because of our enclave-safe HasherBuilder
-                            let mut values_to_nominate: HashSet<String> = values.iter().cloned().collect()
-                            for v in slot_nominated_values {
+                            let mut values_to_nominate: HashSet<String> = values.iter().cloned().collect();
+
+                            for v in slot_nominated_values.iter() {
                                 values_to_nominate.remove(v);
                             }
 
                             if !values_to_nominate.is_empty() {
-                                for v in values_to_nominate {
+                                for v in values_to_nominate.iter() {
                                     slot_nominated_values.insert(v.clone());
                                 }
 
