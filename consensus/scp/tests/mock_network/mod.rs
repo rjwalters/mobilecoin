@@ -176,16 +176,20 @@ impl SimulatedNetwork {
     }
 
     fn stop_all(&mut self) {
+
         let mut nodes_map = self
             .nodes_map
             .lock()
             .expect("lock failed on nodes_map in stop_all");
-
+        let mut node_ids: Vec<NodeID> = Vec::new();
         for (node_id, node) in nodes_map.iter_mut() {
             log::trace!(self.logger, "sending stop to {}", node_id);
-
             node.send_stop();
+            node_ids.push(node_id.clone());
+        }
+        drop(nodes_map);
 
+        for node_id in node_ids {
             log::trace!(self.logger, "joining {}", node_id);
 
             self.handle_map
