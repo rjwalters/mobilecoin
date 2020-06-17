@@ -288,7 +288,6 @@ impl SimulatedNodeSharedData {
 
 // A simulated validator node
 struct SimulatedNode {
-    local_node: Arc<Mutex<Node<String, test_utils::TransactionValidationError>>>,
     sender: crossbeam_channel::Sender<SimulatedNodeTaskMessage>,
     shared_data: Arc<Mutex<SimulatedNodeSharedData>>,
 }
@@ -303,27 +302,22 @@ impl SimulatedNode {
         logger: Logger,
     ) -> (Self, Option<JoinHandle<()>>) {
         let (sender, receiver) = crossbeam_channel::unbounded();
-        let local_node = Arc::new(Mutex::new(Node::new(
+
+        let simulated_node = Self {
+            sender,
+            shared_data: Arc::new(Mutex::new(SimulatedNodeSharedData { ledger: Vec::new() })),
+        };
+
+        let thread_local_node = Node::new(
             node_id.clone(),
             quorum_set,
             test_options.validity_fn.clone(),
             test_options.combine_fn.clone(),
             logger.clone(),
-        )));
+        );
+        thread_local_node.scp_timebase = test_options.scp_timebase;
 
-        local_node
-            .lock()
-            .expect("lock failed on local node setting scp_timebase_millis")
-            .scp_timebase = test_options.scp_timebase;
-
-        let node = Self {
-            local_node,
-            sender,
-            shared_data: Arc::new(Mutex::new(SimulatedNodeSharedData { ledger: Vec::new() })),
-        };
-
-        let thread_shared_data = Arc::clone(&node.shared_data);
-        let thread_local_node = Arc::clone(&node.local_node);
+        let thread_shared_data = Arc::clone(&simulated_node.shared_data);
 
         // See byzantine_ledger.rs#L626
         let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
@@ -391,13 +385,11 @@ impl SimulatedNode {
 
                                 let outgoing_msg: Option<Msg<String>> = {
                                     thread_local_node
-                                        .lock()
-                                        .expect("thread_local_node lock failed when nominating value")
                                         .nominate(
                                             current_slot as SlotIndex,
                                             BTreeSet::from_iter(values_to_nominate)
                                         )
-                                        .expect("node.nominate() failed")
+                                        .expect("nominate() failed")
                                 };
 
                                 if let Some(outgoing_msg) = outgoing_msg {
@@ -411,10 +403,8 @@ impl SimulatedNode {
                         for msg in incoming_msgs.iter() {
                             let outgoing_msg: Option<Msg<String>> = {
                                 thread_local_node
-                                    .lock()
-                                    .expect("thread_local_node lock failed when handling msg")
                                     .handle(msg)
-                                    .expect("node.handle_msg() failed")
+                                    .expect("handle_msg() failed")
                             };
 
                             if let Some(outgoing_msg) = outgoing_msg {
@@ -426,8 +416,6 @@ impl SimulatedNode {
                         // Process timeouts (for all slots)
                         let timeout_msgs: Vec<Msg<String>> = {
                             thread_local_node
-                                .lock()
-                                .expect("thread_local_node lock failed when processing timeouts")
                                 .process_timeouts()
                                 .into_iter()
                                 .collect()
@@ -440,9 +428,7 @@ impl SimulatedNode {
                         // Check if the current slot is done
                         let new_block:Vec<String> = {
                             thread_local_node
-                              .lock()
-                              .expect("thread_local_node lock failed when collecting externalized values")
-                              .get_externalized_values(current_slot as SlotIndex)
+                                .get_externalized_values(current_slot as SlotIndex)
                         };
 
                         if !new_block.is_empty() {
@@ -488,7 +474,7 @@ impl SimulatedNode {
                 .expect("failed spawning SimulatedNode thread"),
         );
 
-        (node, thread_handle)
+        (simulated_node, thread_handle)
     }
 
     /// Push value to this node's consensus task.
