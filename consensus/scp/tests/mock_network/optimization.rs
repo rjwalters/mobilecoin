@@ -205,7 +205,7 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
 
 // optimize performance over submission rate, submissions per slot, and scp timebase
 pub fn optimize(network: &mock_network::Network, parameters_to_vary: Vec<bool>, logger: Logger) {
-    let dimensions = parameters_to_vary.iter().fold(0, |d, is_varied| d + *is_varied as usize)
+    let dimensions = parameters_to_vary.iter().fold(0, |d, is_varied| d + *is_varied as usize);
     if dimensions == 0 {
         return; // probably not intended?
     }
