@@ -454,7 +454,6 @@ impl SimulatedNode {
                             );
 
                             current_slot += 1;
-                            slot_nominated_values = HashSet::default();
                         }
                     }
                     log::info!(
