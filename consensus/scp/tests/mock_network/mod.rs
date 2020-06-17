@@ -184,7 +184,7 @@ impl SimulatedNetwork {
             .lock()
             .expect("lock failed on shared_senders in stop_all");
 
-        for (_node_id, shared_sender) in shared_senders.iter_mut() {
+        for shared_sender in shared_senders.values_mut() {
             shared_sender
                 .lock()
                 .expect("lock failed on sender in stop_all")
@@ -192,9 +192,8 @@ impl SimulatedNetwork {
         }
 
         // join the threads
-        for (_node_id, join_handle_option) in self.thread_handles.iter() {
+        for join_handle_option in self.thread_handles.values_mut() {
             join_handle_option
-                .as_ref()
                 .expect("join handle missing?")
                 .join()
                 .expect("SimulatedNode thread join failed");
@@ -368,7 +367,7 @@ impl SimulatedNode {
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
 
-        let thread_handle = Some(
+        let join_handle_option = Some(
             thread::Builder::new()
                 .name(thread_name)
                 .spawn(move || {
@@ -505,7 +504,7 @@ impl SimulatedNode {
                 .expect("failed spawning SimulatedNode thread"),
         );
 
-        (simulated_node, thread_handle)
+        (simulated_node, join_handle_option)
     }
 }
 
