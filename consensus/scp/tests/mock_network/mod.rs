@@ -192,7 +192,7 @@ impl SimulatedNetwork {
         }
 
         // join the threads
-        for (_node_id, join_handle_option) in self.thread_handles.iter_mut() {
+        for (_node_id, join_handle_option) in self.thread_handles.iter() {
             join_handle_option
                 .expect("join handle missing?")
                 .join()
