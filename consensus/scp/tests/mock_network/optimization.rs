@@ -43,7 +43,7 @@ pub fn skip_optimization() -> bool {
     std::env::var("OPTIMIZE_SCP").is_err()
 }
 
-/// Measures runtime in msec for a mock network
+/// Measures run time in msec for a mock network
 pub fn mock_network_optimizer(
     network: &mock_network::Network,
     parameters_to_vary: Vec<bool>,
@@ -76,9 +76,9 @@ pub fn mock_network_optimizer(
     let v1 = test_options.max_pending_values_to_nominate;
     let v2 = test_options.scp_timebase.as_millis();
 
-    let start = Instant::now();
+    let run_time_start = Instant::now();
     mock_network::build_and_test(&network, &test_options, logger.clone());
-    let run_time = start.elapsed().as_millis();
+    let run_time = run_time_start.elapsed().as_millis();
 
     // observe progress
     log::warn!(
@@ -87,7 +87,7 @@ pub fn mock_network_optimizer(
         network.name,
         VALUES_TO_SUBMIT,
         run_time,
-        (VALUES_TO_SUBMIT as f64 * 1000.0) / run_time,
+        (VALUES_TO_SUBMIT as f64 * 1000.0) / ( run_time as f64 ),
         1,
         start.elapsed().as_millis(),
         v0,
@@ -195,9 +195,9 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
         let v_i: f64 = min + (i as f64) / (OPTIMIZER_ITERATIONS as f64) * max;
         let mut v = vec![c0,c1,c2];
         v[d] = v_i;
-        let runtime = f(&v);
-        if runtime <= min_value{
-            min_value = runtime;
+        let run_time = f(&v);
+        if run_time <= min_value{
+            min_value = run_time;
             coordinates = v;
         }
     }
