@@ -52,6 +52,8 @@ pub fn mock_network_optimizer(
     scp_timebase_millis_f64: f64,
     logger: Logger,
 ) -> f64 {
+    let start = Instant::now();
+
     let mut test_options = mock_network::TestOptions::new();
     test_options.values_to_submit = VALUES_TO_SUBMIT;
     test_options.allowed_test_time = ALLOWED_TEST_TIME;
@@ -76,12 +78,23 @@ pub fn mock_network_optimizer(
 
     let start = Instant::now();
     mock_network::build_and_test(&network, &test_options, logger.clone());
-    let runtime = start.elapsed().as_millis();
+    let run_time = start.elapsed().as_millis();
 
     // observe progress
-    log::warn!(logger, "{}, {}, {}, {}", v0, v1, v2, runtime,);
-
-    return runtime as f64;
+    log::warn!(
+        logger,
+        "{}, {}, {}, {}, {}, {}, {}, {}, {}, , ",
+        network.name,
+        VALUES_TO_SUBMIT,
+        run_time,
+        (VALUES_TO_SUBMIT as f64 * 1000.0) / run_time,
+        1,
+        start.elapsed().as_millis(),
+        v0,
+        v1,
+        v2,
+    );
+    return run_time as f64;
 }
 
 // simplex style optimization
@@ -124,15 +137,16 @@ fn optimize_simplers(network: &mock_network::Network, parameters_to_vary: Vec<bo
 
     log::warn!(
         logger,
-        "{}, {}, {}, {}, {}, {}, {}, {}, {:?}",
+        "{}, {}, {}, {}, {}, {}, {}, {}, {}, {:?},",
         network.name,
+        VALUES_TO_SUBMIT,
         min_value,
-        u64::try_from(c0.trunc() as i64).unwrap(),
-        usize::try_from(c1.trunc() as i64).unwrap(),
-        u64::try_from(c2.trunc() as i64).unwrap(),
         (VALUES_TO_SUBMIT as f64 * 1000.0) / min_value,
-        start.elapsed().as_millis(),
         OPTIMIZER_ITERATIONS,
+        start.elapsed().as_millis(),
+        u64::try_from(coordinates[0].trunc() as i64).unwrap(),
+        usize::try_from(coordinates[1].trunc() as i64).unwrap(),
+        u64::try_from(coordinates[2].trunc() as i64).unwrap(),
         input_interval,
     );
 }
@@ -190,15 +204,16 @@ fn optimize_grid_search(network: &mock_network::Network, parameters_to_vary: Vec
 
     log::warn!(
         logger,
-        "{}, {}, {}, {}, {}, {}, {}, {}, {:?}",
+        "{}, {}, {}, {}, {}, {}, {}, {}, {}, {:?},",
         network.name,
+        VALUES_TO_SUBMIT,
         min_value,
+        (VALUES_TO_SUBMIT as f64 * 1000.0) / min_value,
+        OPTIMIZER_ITERATIONS,
+        start.elapsed().as_millis(),
         u64::try_from(coordinates[0].trunc() as i64).unwrap(),
         usize::try_from(coordinates[1].trunc() as i64).unwrap(),
         u64::try_from(coordinates[2].trunc() as i64).unwrap(),
-        (VALUES_TO_SUBMIT as f64 * 1000.0) / min_value,
-        start.elapsed().as_millis(),
-        OPTIMIZER_ITERATIONS,
         input_interval,
     );
 }
