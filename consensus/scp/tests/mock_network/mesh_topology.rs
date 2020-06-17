@@ -19,13 +19,13 @@ pub fn dense_mesh(num_nodes: usize, k: usize) -> mock_network::Network {
     for node_index in 0..num_nodes {
         let peers_vector = (0..num_nodes)
             .filter(|other_node_index| other_node_index != &node_index)
-            .map(|other_node_index|| test_utils::test_node_id(other_node_index as u32))
+            .map(|other_node_index| test_utils::test_node_id(other_node_index as u32))
             .collect::<Vec<NodeID>>();
 
         nodes.push(mock_network::NodeOptions::new(
             id: test_utils::test_node_id(node_index as u32)
             peers: peers_vector.iter().clone().collect::<HashSet<NodeID>>(),
-            quorum_set: QuorumSet::new_with_node_ids(k, peers_vector);
+            quorum_set: QuorumSet::new_with_node_ids(k, peers_vector),
         ));
     }
 
