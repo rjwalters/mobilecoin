@@ -614,7 +614,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                 );
 
                 if num_externalized_values > test_options.values_to_submit {
-                    log::warn!(
+                    log::error!(
                         simulation.logger,
                         "( testing ) externalized extra values at node {}",
                         node_id
