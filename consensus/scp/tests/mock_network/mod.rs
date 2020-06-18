@@ -302,7 +302,7 @@ impl SimulatedNode {
 
         let mut thread_local_node = Node::new(
             node_options.id.clone(),
-            node_options.quorum_set,
+            node_options.quorum_set.clone(),
             test_options.validity_fn.clone(),
             test_options.combine_fn.clone(),
             logger.clone(),
