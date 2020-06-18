@@ -301,7 +301,7 @@ impl SimulatedNode {
         };
 
         let mut thread_local_node = Node::new(
-            node_options.node_id.clone(),
+            node_options.id.clone(),
             node_options.quorum_set,
             test_options.validity_fn.clone(),
             test_options.combine_fn.clone(),
@@ -320,7 +320,7 @@ impl SimulatedNode {
 
         let join_handle_option = Some(
             thread::Builder::new()
-                .name(node_options.node_id.to_string())
+                .name(node_options.id.to_string())
                 .spawn(move || {
                     // All values that have not yet been externalized.
                     let mut pending_values: HashSet<String> = HashSet::default();
