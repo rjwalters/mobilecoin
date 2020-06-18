@@ -619,6 +619,8 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                         "( testing ) externalized extra values at node {}",
                         node_id
                     );
+                    // panic for testing
+                    panic!("caught duplicate externalized values");
                 }
 
                 break;
