@@ -22,6 +22,6 @@ fn cyclic_test_helper(num_nodes: usize, logger: Logger) {
 #[serial]
 fn cyclic_2(logger: Logger) {
     for _i in 0..100 {
-        cyclic_test_helper(2, logger);
+        cyclic_test_helper(2, logger.clone());
     }
 }
