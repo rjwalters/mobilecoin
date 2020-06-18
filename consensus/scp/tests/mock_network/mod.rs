@@ -125,6 +125,7 @@ impl Network {
 
 pub struct SimulatedNetwork {
     handle_map: HashMap<NodeID, JoinHandle<()>>,
+    names_map: HashMap<NodeID, String>,
     nodes_map: Arc<Mutex<HashMap<NodeID, SimulatedNode>>>,
     shared_data_map: HashMap<NodeID, Arc<Mutex<SimulatedNodeSharedData>>>,
     logger: Logger,
@@ -135,6 +136,7 @@ impl SimulatedNetwork {
     pub fn new(network: &Network, test_options: &TestOptions, logger: Logger) -> Self {
         let mut simulation = SimulatedNetwork {
             handle_map: HashMap::default(),
+            names_map: HashMap::default(),
             nodes_map: Arc::new(Mutex::new(HashMap::default())),
             shared_data_map: HashMap::default(),
             logger: logger.clone(),
@@ -152,10 +154,15 @@ impl SimulatedNetwork {
                 Arc::new(move |logger, msg| {
                     SimulatedNetwork::broadcast_msg(logger, &nodes_map_clone, &peers_clone, msg)
                 }),
+                logger.clone(),
             );
             simulation.handle_map.insert(
                 node_options.id.clone(),
                 join_handle_option.expect("thread failed to spawn"),
+            );
+            simulation.names_map.insert(
+                node_options.id.clone(),
+                node_options.name.clone(),
             );
             simulation
                 .shared_data_map
@@ -177,7 +184,13 @@ impl SimulatedNetwork {
             .expect("lock failed on nodes_map in stop_all");
         let mut node_ids: Vec<NodeID> = Vec::new();
         for (node_id, node) in nodes_map.iter_mut() {
-            log::trace!(self.logger, "sending stop to {}", node.name);
+            log::trace!(
+                self.logger,
+                "sending stop to {}",
+                self.names_map
+                    .get(node_id)
+                    .expect("could not find node_id in nodes_map"),
+            );
             node.send_stop();
             node_ids.push(node_id.clone());
         }
@@ -534,11 +547,9 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
     // get a vector of the node_ids
     let node_ids: Vec<NodeID> = network.nodes.iter().map(|n| n.id.clone()).collect();
 
-    // check that all ledgers start empty and map node names
-    let node_names: HashMap<NodeID, String> = HashMap::default();
+    // check that all ledgers start empty
     for n in 0..network.nodes.len() {
         assert!(simulation.get_ledger_size(&node_ids[n]) == 0);
-        node_names.insert(node_ids[n].clone(), network.nodes[n].name);
     }
 
     // push values
@@ -593,7 +604,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     simulation.logger,
                     "( testing ) failed to externalize all values within {} sec at node {}!",
                     test_options.allowed_test_time.as_secs(),
-                    node_names.get(node_id).expect("could not find node_id"),
+                    simulation.names_map.get(node_id).expect("could not find node_id"),
                 );
                 // panic
                 panic!("test failed due to timeout");
@@ -609,14 +620,14 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     "( testing ) externalized {}/{} values at node {}",
                     num_externalized_values,
                     test_options.values_to_submit,
-                    node_names.get(node_id).expect("could not find node_id"),
+                    simulation.names_map.get(node_id).expect("could not find node_id"),
                 );
 
                 if num_externalized_values > test_options.values_to_submit {
                     log::warn!(
                         simulation.logger,
                         "( testing ) externalized extra values at node {}",
-                        node_names.get(node_id).expect("could not find node_id"),
+                        simulation.names_map.get(node_id).expect("could not find node_id"),
                     );
                 }
 
@@ -629,7 +640,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
                     "( testing ) externalized {}/{} values at node {}",
                     num_externalized_values,
                     test_options.values_to_submit,
-                    node_names.get(node_id).expect("could not find node_id"),
+                    simulation.names_map.get(node_id).expect("could not find node_id"),
                 );
                 last_log = Instant::now();
             }
@@ -660,7 +671,7 @@ pub fn build_and_test(network: &Network, test_options: &TestOptions, logger: Log
             log::error!(
                 simulation.logger,
                 "node {} externalized wrong values! missing: {:?}, unexpected: {:?}",
-                node_names.get(node_id).expect("could not find node_id"),
+                simulation.names_map.get(node_id).expect("could not find node_id"),
                 missing_values,
                 unexpected_values,
             );
