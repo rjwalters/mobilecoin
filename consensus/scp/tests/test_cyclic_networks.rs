@@ -12,7 +12,7 @@ fn cyclic_test_helper(num_nodes: usize, logger: Logger) {
     }
 
     let mut test_options = mock_network::TestOptions::new();
-    test_options.values_to_submit = 10000;
+    test_options.values_to_submit = 1000;
 
     let network = mock_network::cyclic_topology::directed_cycle(num_nodes);
     mock_network::build_and_test(&network, &test_options, logger.clone());
@@ -21,7 +21,7 @@ fn cyclic_test_helper(num_nodes: usize, logger: Logger) {
 #[test_with_logger]
 #[serial]
 fn cyclic_2(logger: Logger) {
-    for _i in 0..100 {
+    for _i in 0..1000 {
         cyclic_test_helper(2, logger.clone());
     }
 }
