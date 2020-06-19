@@ -63,8 +63,10 @@ pub fn metamesh(
                 })
                 .collect::<Vec<NodeID>>();
 
+            // reduce k by one if possible for this nodes organization
+            let k_for_this_org: u32 = if k_m > 1 { k_m as u32 - 1 } else { 1 };
             let inner_quorum_set_for_this_org =
-                QuorumSet::new_with_node_ids((k_m - 1) as u32, other_servers_in_this_org);
+                QuorumSet::new_with_node_ids(k_for_this_org, other_servers_in_this_org);
 
             let mut inner_quorum_sets_for_other_orgs = org_quorum_sets
                 .iter()

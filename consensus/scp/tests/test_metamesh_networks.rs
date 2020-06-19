@@ -15,21 +15,27 @@ fn metamesh_test_helper(
     k_m: usize, // the number of servers that must agree within the org
     logger: Logger,
 ) {
-    assert!(k_n <= n);
-    assert!(k_m <= m);
+    assert!(k_n > 0 && k_n <= n);
+    assert!(k_m > 0 && k_m <= m);
 
     if (n * m) > 6 && mock_network::skip_slow_tests() {
         return;
     }
 
     let mut test_options = mock_network::TestOptions::new();
-    test_options.values_to_submit = 10000;
 
-    // metamesh seems to require more timeouts to make progress
-    test_options.scp_timebase = Duration::from_millis(100);
+    // metamesh networks require more time to reach consensus!
+    test_options.values_to_submit = 100;
+    test_options.scp_timebase = Duration::from_millis(1000);
 
     let network = mock_network::metamesh_topology::metamesh(n, k_n, m, k_m);
     mock_network::build_and_test(&network, &test_options, logger.clone());
+}
+
+#[test_with_logger]
+#[serial]
+fn metamesh_3k2_3k1(logger: Logger) {
+    metamesh_test_helper(3, 2, 3, 1, logger.clone());
 }
 
 #[test_with_logger]
