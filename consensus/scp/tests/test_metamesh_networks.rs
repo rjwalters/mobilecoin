@@ -5,6 +5,8 @@ mod mock_network;
 use mc_common::logger::{test_with_logger, Logger};
 use serial_test_derive::serial;
 
+use std::time::Duration;
+
 /// Performs a consensus test for a metamesh network of `n * m` nodes.
 fn metamesh_test_helper(
     n: usize, // the number of organizations in the network
@@ -22,6 +24,9 @@ fn metamesh_test_helper(
 
     let mut test_options = mock_network::TestOptions::new();
     test_options.values_to_submit = 10000;
+
+    // metamesh seems to require more timeouts to make progress
+    test_options.scp_timebase = Duration::from_millis(100);
 
     let network = mock_network::metamesh_topology::metamesh(n, k_n, m, k_m);
     mock_network::build_and_test(&network, &test_options, logger.clone());
