@@ -27,7 +27,6 @@ use mc_consensus_scp::{test_utils, QuorumSet};
 // Metamesh Topology
 ///////////////////////////////////////////////////////////////////////////////
 
-
 pub fn metamesh(
     n: usize, // the number of organizations in the network
     k_n: usize, // the number of orgs that must agree within the network
@@ -40,7 +39,7 @@ pub fn metamesh(
     let org_quorum_sets = (0..n)
         .map(|org_index| {
             QuorumSet::new_with_node_ids(
-                k_m,
+                k_m as u32,
                 (0..m)
                     .map(|server_index| {
                         let node_index = (org_index * m + server_index) as u32;
@@ -76,7 +75,7 @@ pub fn metamesh(
                 .collect::<Vec<QuorumSet>>();
 
             let mut inner_quorum_sets = Vec::<QuorumSet>::new();
-            inner_quorum_sets.push(inner_quorum_set_for_our_org);
+            inner_quorum_sets.push(inner_quorum_set_for_this_org);
             inner_quorum_sets.append(&mut inner_quorum_sets_for_other_orgs);
 
             // connect this node to all other nodes

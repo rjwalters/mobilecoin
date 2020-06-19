@@ -23,7 +23,7 @@ fn metamesh_test_helper(
     let mut test_options = mock_network::TestOptions::new();
     test_options.values_to_submit = 10000;
 
-    let network = mock_network::mesh_topology::metamesh(n, k_n, m, k_m);
+    let network = mock_network::metamesh_topology::metamesh(n, k_n, m, k_m);
     mock_network::build_and_test(&network, &test_options, logger.clone());
 }
 
