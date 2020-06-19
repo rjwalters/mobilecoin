@@ -11,7 +11,7 @@ fn mesh_test_helper(
     k: usize, // the number of nodes that must agree within the network
     logger: Logger
 ) {
-    assert!(k >= 0 && k <= n);
+    assert!(k <= n);
 
     if n > 3 && mock_network::skip_slow_tests() {
         return;
