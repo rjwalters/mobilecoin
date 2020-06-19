@@ -15,8 +15,8 @@ fn metamesh_test_helper(
     k_m: usize, // the number of servers that must agree within the org
     logger: Logger,
 ) {
-    assert!(k_n > 0 && k_n <= n);
-    assert!(k_m > 0 && k_m <= m);
+    assert!(k_n >= 0 && k_n <= n);
+    assert!(k_m >= 0 && k_m <= m);
 
     if (n * m) > 6 && mock_network::skip_slow_tests() {
         return;
