@@ -323,7 +323,7 @@ impl SCPNode {
         let mut total_num_accepted_nominated = 0;
         let mut total_num_confirmed_nominated = 0;
         let mut total_cur_nomination_round = 0;
-        let mut total_bN = 0;
+        let mut total_ballot_number = 0;
 
         let start = Instant::now();
 
@@ -452,7 +452,7 @@ impl SCPNode {
                             total_num_accepted_nominated += slot_metrics.num_accepted_nominated;
                             total_num_confirmed_nominated += slot_metrics.num_confirmed_nominated;
                             total_cur_nomination_round += slot_metrics.cur_nomination_round;
-                            total_bN += slot_metrics.bN;
+                            total_ballot_number += slot_metrics.bN;
 
                             log::info!(
                                 logger,
@@ -492,7 +492,7 @@ impl SCPNode {
                         total_num_accepted_nominated,
                         total_num_confirmed_nominated,
                         total_cur_nomination_round,
-                        total_bN,
+                        total_ballot_number,
                     );
                 })
                 .expect("failed spawning SCPNode thread"),
