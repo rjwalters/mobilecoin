@@ -119,7 +119,7 @@ if __name__ == '__main__':
         last_read_time = time.time()
 
         formatted_line = "{0:5.2f} :: {1}".format(iteration_elapsed, line)
-        sys.stdout.write(formatted_line)
+        # sys.stdout.write(formatted_line)
         output.append(formatted_line) # collect all output lines
 
         # count unexpected log messages
