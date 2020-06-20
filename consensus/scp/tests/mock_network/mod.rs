@@ -454,9 +454,10 @@ impl SCPNode {
                             total_cur_nomination_round += slot_metrics.cur_nomination_round;
                             total_ballot_number += slot_metrics.bN;
 
-                            log::trace!(
+                            // report statistics for slot advancement
+                            log::debug!(
                                 logger,
-                                "{} node {} slot {} [{},{},{},{},{}], status: {} new, {} total, {} pending",
+                                "(slot) {},{},{},{},{},{},{},{},{},{},{} (slot)",
                                 network_name,
                                 node_config.name,
                                 current_slot as SlotIndex,
@@ -475,10 +476,10 @@ impl SCPNode {
                         }
                     }
 
-                    // report statistics in csv format
+                    // report statistics for completed test
                     log::info!(
                         logger,
-                        "(stats),{},{},{},{},{},{},{},{},{},{},{},{},{},{},",
+                        "(stats) {},{},{},{},{},{},{},{},{},{},{},{},{},{} (stats)",
                         network_name,
                         node_config.name,
                         total_broadcasts,
@@ -783,7 +784,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
 
     log::info!(
         logger,
-        "build and test {} completed in {:?} (avg {} tx/s)",
+        "build and test completed for {} in {:?} (avg {} tx/s)",
         network_config.name,
         start.elapsed(),
         (1_000_000 * values.len() as u128) / start.elapsed().as_micros(),
