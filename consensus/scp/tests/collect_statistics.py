@@ -139,7 +139,7 @@ if __name__ == '__main__':
         # collect stats
         if line.find("(stats)") > 0:
           csv_values = line.split('(stats)')
-          sys.stdout.write(csv_values[1])
+          sys.stdout.write(csv_values[1].strip() + "\n")
           sys.stdout.flush()
 
         # check if this iteration is finished
