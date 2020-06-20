@@ -9,6 +9,7 @@ use std::time::Duration;
 
 /// Performs a consensus test for a metamesh network of `n * m` nodes.
 fn metamesh_test_helper(
+    values_to_submit: usize;
     n: usize,   // the number of organizations in the network
     k_n: usize, // the number of orgs that must agree within the network
     m: usize,   // the number of servers in each organization
@@ -24,9 +25,8 @@ fn metamesh_test_helper(
 
     let mut test_options = mock_network::TestOptions::new();
 
-    // metamesh networks require more time to reach consensus!
-    test_options.values_to_submit = 1;
-    test_options.scp_timebase = Duration::from_millis(100);
+    // metamesh networks are difficult
+    test_options.values_to_submit = values_to_submit;
 
     let network_config = mock_network::metamesh_topology::metamesh(n, k_n, m, k_m);
     mock_network::build_and_test(&network_config, &test_options, logger.clone());
@@ -35,23 +35,23 @@ fn metamesh_test_helper(
 #[test_with_logger]
 #[serial]
 fn metamesh_3k2_3k1(logger: Logger) {
-    metamesh_test_helper(3, 2, 3, 1, logger.clone());
+    metamesh_test_helper(100, 3, 2, 3, 1, logger.clone());
 }
 
 #[test_with_logger]
 #[serial]
 fn metamesh_3k2_3k2(logger: Logger) {
-    metamesh_test_helper(3, 2, 3, 2, logger.clone());
+    metamesh_test_helper(100, 3, 2, 3, 2, logger.clone());
 }
 
 #[test_with_logger]
 #[serial]
 fn metamesh_3k2_4k3(logger: Logger) {
-    metamesh_test_helper(3, 2, 4, 3, logger.clone());
+    metamesh_test_helper(1, 3, 2, 4, 3, logger.clone());
 }
 
 #[test_with_logger]
 #[serial]
 fn metamesh_3k2_5k4(logger: Logger) {
-    metamesh_test_helper(3, 2, 5, 4, logger.clone());
+    metamesh_test_helper(1, 3, 2, 5, 4, logger.clone());
 }

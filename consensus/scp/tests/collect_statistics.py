@@ -142,7 +142,7 @@ if __name__ == '__main__':
         # collect stats
         if line.find("(stats)") > 0:
           csv_values = line.split('(stats)')
-          sys.stdout.write("{0},".format(iteration))
+          sys.stdout.write("{0},{1},".format(iteration, topology))
           sys.stdout.write(csv_values[1].strip() + "\n")
           sys.stdout.flush()
 
