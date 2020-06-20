@@ -454,7 +454,7 @@ impl SCPNode {
                             total_cur_nomination_round += slot_metrics.cur_nomination_round;
                             total_ballot_number += slot_metrics.bN;
 
-                            log::info!(
+                            log::trace!(
                                 logger,
                                 "{} node {} slot {} [{},{},{},{},{}], status: {} new, {} total, {} pending",
                                 network_name,
