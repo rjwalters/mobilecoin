@@ -4,7 +4,7 @@
 # performance statistics, organized by network topology. It also saves a record
 # of all output collected from the best and worst performance observed.
 
-# suggested use: python ./tests/collect_statistics.py | tee -a statistics.dat
+# suggested use: python ./tests/collect_statistics.py | tee -a statistics.out
 
 import sys, os
 import signal
@@ -139,6 +139,7 @@ if __name__ == '__main__':
         # collect stats
         if line.find("(stats)") > 0:
           csv_values = line.split('(stats)')
+          sys.stdout.write("{0},".format(iteration))
           sys.stdout.write(csv_values[1].strip() + "\n")
           sys.stdout.flush()
 
