@@ -13,7 +13,7 @@ from threading  import Thread
 import time
 from datetime import datetime
 
-os.environ["SKIP_SLOW_TESTS"] = "1"
+# os.environ["SKIP_SLOW_TESTS"] = "1"
 os.environ["MC_LOG"] = "debug" # debug will display slot advancement statistics
 os.environ["RUST_BACKTRACE"] = "full"
 
@@ -37,6 +37,8 @@ def save_output(filename, output):
       f.write("{}".format(line))
 
 if __name__ == '__main__':
+
+  NUM_TOPOLOGIES = 6 + 7 + 4 # cyclic + mesh + metamesh
 
   max_duration = 0
   min_duration = 1e100
@@ -62,6 +64,7 @@ if __name__ == '__main__':
     warn_count = 0
     erro_count = 0
     crit_count = 0
+    topology = 0
 
     iteration_start_time = time.time()
     last_read_time = time.time()
@@ -143,11 +146,14 @@ if __name__ == '__main__':
           sys.stdout.write(csv_values[1].strip() + "\n")
           sys.stdout.flush()
 
-        # check if this iteration is finished
-        #if line.find("build and test completed") > 0:
-        if line.find("Doc-tests mc-consensus-scp") > 0:
+        # check if this topology is finished
+        if line.find("build and test completed") > 0:
+          topology += 1;
+
+        if topology == NUM_TOPOLOGIES:
 
           duration = int(round((time.time() - iteration_start_time) * 1000))
+
           # update fastest and slowest runs
           if duration <= min_duration:
             min_duration = duration
@@ -169,6 +175,7 @@ if __name__ == '__main__':
           erro_count = 0
           crit_count = 0
           error_type = 0
+          topology = 0
 
           time.sleep(0.100)
           sys.stdout.flush()
