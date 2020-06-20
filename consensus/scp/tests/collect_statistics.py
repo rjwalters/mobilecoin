@@ -4,7 +4,7 @@
 # performance statistics, organized by network topology. It also saves a record
 # of all output collected from the best and worst performance observed.
 
-# suggested use: python collect_statistics.py | tee -a statistics.dat
+# suggested use: python ./tests/collect_statistics.py | tee -a statistics.dat
 
 import sys, os
 import signal
@@ -78,8 +78,6 @@ if __name__ == '__main__':
       crit_count_error = crit_count > 10000
 
       count_error = warn_count_error or erro_count_error or crit_count_error
-
-      error_type =
 
       if dead_time_error or count_error or test_time_error:
         # abort this iteration
