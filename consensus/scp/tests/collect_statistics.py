@@ -92,7 +92,7 @@ if __name__ == '__main__':
         str = "too many warnings" if count_error else str
         str = "test iteration timed out" if test_time_error else str
 
-        formatted_line = "#ABORTED {0:d} cause: \"{2}\" \n".format(
+        formatted_line = "#ABORTED {0:d} cause: \"{1}\" \n".format(
           iteration,
           str,
         )
@@ -105,7 +105,6 @@ if __name__ == '__main__':
         iteration_start_time = time.time()
         iteration += 1
         break
-
 
       # read one line of output from "cargo test --release" without blocking
       found_line = False
@@ -120,7 +119,7 @@ if __name__ == '__main__':
         last_read_time = time.time()
 
         formatted_line = "{0:5.2f} :: {1}".format(iteration_elapsed, line)
-        # sys.stdout.write(formatted_line)
+        sys.stdout.write(formatted_line)
         output.append(formatted_line) # collect all output lines
 
         # count unexpected log messages
