@@ -151,6 +151,7 @@ impl SCPNetwork {
             let peers_clone = node_config.peers.clone();
 
             let (node, join_handle_option) = SCPNode::new(
+                network_config.name.clone(),
                 node_config.clone(),
                 test_options.clone(),
                 Arc::new(move |logger, msg| {
