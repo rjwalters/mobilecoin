@@ -69,6 +69,12 @@ if __name__ == '__main__':
     iteration_start_time = time.time()
     last_read_time = time.time()
 
+    '''
+      TODO:
+      - keep track of best and worst runs per topology (in subfolders?)
+
+    '''
+
     while(True): # collect output for this iteration
       iteration_elapsed = time.time() - iteration_start_time
       dead_time_elapsed = time.time() - last_read_time
