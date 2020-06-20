@@ -448,11 +448,11 @@ impl SCPNode {
 
                             assert!(slot_metrics.phase == Phase::Externalize);
 
-                            let total_num_voted_nominated += slot_metrics.num_voted_nominated;
-                            let total_num_accepted_nominated += slot_metrics.num_accepted_nominated;
-                            let total_num_confirmed_nominated += slot_metrics.num_confirmed_nominated;
-                            let total_cur_nomination_round += slot_metrics.cur_nomination_round;
-                            let total_bN += slot_metrics.bN;
+                            total_num_voted_nominated += slot_metrics.num_voted_nominated;
+                            total_num_accepted_nominated += slot_metrics.num_accepted_nominated;
+                            total_num_confirmed_nominated += slot_metrics.num_confirmed_nominated;
+                            total_cur_nomination_round += slot_metrics.cur_nomination_round;
+                            total_bN += slot_metrics.bN;
 
                             log::info!(
                                 logger,
