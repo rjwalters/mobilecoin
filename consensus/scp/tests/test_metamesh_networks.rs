@@ -9,7 +9,7 @@ use std::time::Duration;
 
 /// Performs a consensus test for a metamesh network of `n * m` nodes.
 fn metamesh_test_helper(
-    values_to_submit: usize;
+    values_to_submit: usize,
     n: usize,   // the number of organizations in the network
     k_n: usize, // the number of orgs that must agree within the network
     m: usize,   // the number of servers in each organization
