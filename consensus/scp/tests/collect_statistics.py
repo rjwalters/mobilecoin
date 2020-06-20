@@ -17,7 +17,7 @@ os.environ["SKIP_SLOW_TESTS"] = "1"
 os.environ["MC_LOG"] = "debug" # debug will display slot advancement statistics
 os.environ["RUST_BACKTRACE"] = "full"
 
-command = 'cargo test --release --lib -- --test-threads=1 --nocapture'
+command = 'cargo test --release -- --test-threads=1 --nocapture'
 
 try:
   from queue import Queue, Empty
