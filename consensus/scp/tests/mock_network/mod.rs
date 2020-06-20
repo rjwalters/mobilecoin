@@ -319,11 +319,11 @@ impl SCPNode {
         let mut slot_nominated_values: HashSet<String> = HashSet::default();
 
         // accumulators for slot metrics
-        let total_num_voted_nominated = 0;
-        let total_num_accepted_nominated = 0;
-        let total_num_confirmed_nominated = 0;
-        let total_cur_nomination_round = 0;
-        let total_bN = 0;
+        let mut total_num_voted_nominated = 0;
+        let mut total_num_accepted_nominated = 0;
+        let mut total_num_confirmed_nominated = 0;
+        let mut total_cur_nomination_round = 0;
+        let mut total_bN = 0;
 
         let start = Instant::now();
 
