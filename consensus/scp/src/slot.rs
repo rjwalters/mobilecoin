@@ -143,7 +143,7 @@ pub struct SlotMetrics {
     /// The number of values confirmed nominated.
     pub num_confirmed_nominated: usize,
 
-    /// Teh current nomination round.
+    /// The current nomination round.
     pub cur_nomination_round: u32,
 
     /// The highest ballot counter.

@@ -15,6 +15,7 @@ use mc_consensus_scp::{
     msg::Msg,
     node::{Node, ScpNode},
     quorum_set::QuorumSet,
+    slot::Phase,
     test_utils,
 };
 use std::{
@@ -151,7 +152,7 @@ impl SCPNetwork {
 
             let (node, join_handle_option) = SCPNode::new(
                 node_config.clone(),
-                test_options,
+                test_options.clone(),
                 Arc::new(move |logger, msg| {
                     SCPNetwork::broadcast_msg(logger, &nodes_map_clone, &peers_clone, msg)
                 }),
@@ -288,8 +289,9 @@ struct SCPNode {
 
 impl SCPNode {
     fn new(
+        network_name: String,
         node_config: NodeConfig,
-        test_options: &TestOptions,
+        test_options: TestOptions,
         broadcast_msg_fn: Arc<dyn Fn(Logger, Msg<String>) + Sync + Send>,
         logger: Logger,
     ) -> (Self, Option<JoinHandle<()>>) {
@@ -311,12 +313,18 @@ impl SCPNode {
 
         let thread_shared_data = Arc::clone(&scp_node.shared_data);
 
-        // See byzantine_ledger.rs#L626
-        let max_pending_values_to_nominate: usize = test_options.max_pending_values_to_nominate;
-        let mut slot_nominated_values: HashSet<String> = HashSet::default();
-
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
+        let mut slot_nominated_values: HashSet<String> = HashSet::default();
+
+        // accumulators for slot metrics
+        let total_num_voted_nominated = 0;
+        let total_num_accepted_nominated = 0;
+        let total_num_confirmed_nominated = 0;
+        let total_cur_nomination_round = 0;
+        let total_bN = 0;
+
+        let start = Instant::now();
 
         let join_handle_option = Some(
             thread::Builder::new()
@@ -354,12 +362,13 @@ impl SCPNode {
                         };
 
                         // Nominate pending values submitted to our node
-                        if (slot_nominated_values.len() < max_pending_values_to_nominate)
+                        // compare to byzantine_ledger.rs#L626
+                        if (slot_nominated_values.len() < test_options.max_pending_values_to_nominate)
                             && !pending_values.is_empty()
                         {
                             let mut values: Vec<String> = pending_values.iter().cloned().collect();
                             values.sort();
-                            values.truncate(max_pending_values_to_nominate);
+                            values.truncate(test_options.max_pending_values_to_nominate);
 
                             // mc_common::HashSet does not support extend because of our enclave-safe HasherBuilder
                             let mut values_to_nominate: HashSet<String> =
@@ -430,11 +439,31 @@ impl SCPNode {
 
                             drop(locked_shared_data);
 
-                            log::trace!(
+                            // collect metrics for this slot
+                            let slot_metrics =
+                                thread_local_node
+                                    .get_slot_metrics(current_slot as SlotIndex)
+                                    .expect("failed to get slot metrics!");
+
+                            assert!(slot_metrics.phase == Phase::Externalize)
+
+                            let total_num_voted_nominated += slot_metrics.num_voted_nominated;
+                            let total_num_accepted_nominated += slot_metrics.num_accepted_nominated;
+                            let total_num_confirmed_nominated += slot_metrics.num_confirmed_nominated;
+                            let total_cur_nomination_round += slot_metrics.cur_nomination_round;
+                            let total_bN += slot_metrics.bN;
+
+                            log::info!(
                                 logger,
-                                "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
+                                "{} node {} slot {} [{},{},{},{},{}], status: {} new, {} total, {} pending",
+                                network_name,
                                 node_config.name,
                                 current_slot as SlotIndex,
+                                slot_metrics.num_voted_nominated,
+                                slot_metrics.num_accepted_nominated,
+                                slot_metrics.num_confirmed_nominated,
+                                slot_metrics.cur_nomination_round,
+                                slot_metrics.bN,
                                 new_block_length,
                                 ledger_size,
                                 pending_values.len(),
@@ -444,12 +473,25 @@ impl SCPNode {
                             slot_nominated_values = HashSet::default();
                         }
                     }
+
+                    // report statistics in csv format
                     log::info!(
                         logger,
-                        "thread results: {},{},{}",
+                        "(stats),{},{},{},{},{},{},{},{},{},{},{},{},{},{},",
+                        network_name,
                         node_config.name,
                         total_broadcasts,
                         current_slot,
+                        start.elapsed().as_millis(),
+                        test_options.values_to_submit,
+                        test_options.submissions_per_sec,
+                        test_options.max_pending_values_to_nominate,
+                        test_options.scp_timebase.as_millis(),
+                        total_num_voted_nominated,
+                        total_num_accepted_nominated,
+                        total_num_confirmed_nominated,
+                        total_cur_nomination_round,
+                        total_bN,
                     );
                 })
                 .expect("failed spawning SCPNode thread"),
@@ -516,14 +558,14 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
     if test_options.submit_in_parallel {
         log::info!(
             logger,
-            "( testing ) begin test for {} with {} values in parallel",
+            "build and test {} submitting {} values in PARALLEL",
             network_config.name,
             test_options.values_to_submit,
         );
     } else {
         log::info!(
             logger,
-            "( testing ) begin test for {} with {} values in sequence",
+            "build and test {} submitting {} values in SEQUENCE",
             network_config.name,
             test_options.values_to_submit,
         );
@@ -540,8 +582,9 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
 
     log::info!(
         simulation.logger,
-        "( testing ) finished generating {} values",
-        test_options.values_to_submit
+        "finished generating {} values (random strings of length {})",
+        test_options.values_to_submit,
+        CHARACTERS_PER_VALUE,
     );
 
     // get a vector of the node_ids
@@ -571,7 +614,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
         if last_log.elapsed().as_millis() > 999 {
             log::info!(
                 simulation.logger,
-                "( testing ) pushed {}/{} values",
+                "submitted {}/{} values",
                 i,
                 test_options.values_to_submit
             );
@@ -588,7 +631,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
     // report end of value push
     log::info!(
         simulation.logger,
-        "( testing ) pushed {} values",
+        "submitted {} values",
         test_options.values_to_submit
     );
 
@@ -602,7 +645,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
             if Instant::now() > deadline {
                 log::error!(
                     simulation.logger,
-                    "( testing ) failed to externalize all values within {} sec at node {}!",
+                    "failed to externalize all values within {} sec at node {}!",
                     test_options.allowed_test_time.as_secs(),
                     simulation
                         .names_map
@@ -620,7 +663,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
                 // provided that all the nodes externalize the same ledger!
                 log::info!(
                     simulation.logger,
-                    "( testing ) externalized {}/{} values at node {}",
+                    "externalized {}/{} values at node {}",
                     num_externalized_values,
                     test_options.values_to_submit,
                     simulation
@@ -632,7 +675,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
                 if num_externalized_values > test_options.values_to_submit {
                     log::warn!(
                         simulation.logger,
-                        "( testing ) externalized extra values at node {}",
+                        "externalized extra values at node {}",
                         simulation
                             .names_map
                             .get(node_id)
@@ -646,7 +689,7 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
             if last_log.elapsed().as_millis() > 999 {
                 log::info!(
                     simulation.logger,
-                    "( testing ) externalized {}/{} values at node {}",
+                    "externalized {}/{} values at node {}",
                     num_externalized_values,
                     test_options.values_to_submit,
                     simulation
@@ -737,10 +780,9 @@ pub fn build_and_test(network_config: &NetworkConfig, test_options: &TestOptions
         test_options.scp_timebase.as_millis(),
     );
 
-    // human readable throughput
     log::info!(
         logger,
-        "test completed for {}: {:?} (avg {} tx/s)",
+        "build and test {} completed in {:?} (avg {} tx/s)",
         network_config.name,
         start.elapsed(),
         (1_000_000 * values.len() as u128) / start.elapsed().as_micros(),
