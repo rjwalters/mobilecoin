@@ -144,7 +144,8 @@ if __name__ == '__main__':
           sys.stdout.flush()
 
         # check if this iteration is finished
-        if line.find("build and test completed") > 0:
+        #if line.find("build and test completed") > 0:
+        if line.find("Doc-tests mc-consensus-scp") > 0:
 
           duration = int(round((time.time() - iteration_start_time) * 1000))
           # update fastest and slowest runs
