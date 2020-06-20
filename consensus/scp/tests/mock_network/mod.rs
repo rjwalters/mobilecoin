@@ -446,7 +446,7 @@ impl SCPNode {
                                     .get_slot_metrics(current_slot as SlotIndex)
                                     .expect("failed to get slot metrics!");
 
-                            assert!(slot_metrics.phase == Phase::Externalize)
+                            assert!(slot_metrics.phase == Phase::Externalize);
 
                             let total_num_voted_nominated += slot_metrics.num_voted_nominated;
                             let total_num_accepted_nominated += slot_metrics.num_accepted_nominated;
