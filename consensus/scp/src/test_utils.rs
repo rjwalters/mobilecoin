@@ -194,7 +194,7 @@ pub fn quorum_set_from_str(
     for pair in inner_rules {
         match pair.as_rule() {
             Rule::empty_set => {
-                return Ok(quorum_set);
+                return quorum_set;
             }
             Rule::threshold => {
                 let threshold_string = pair.into_inner().next().unwrap().as_str();
@@ -221,7 +221,7 @@ pub fn quorum_set_from_str(
             _ => panic!("unexpected rule!"),
         }
     }
-    Ok(quorum_set)
+    quorum_set
 }
 
 /// creates a easy-to-read string from a QuorumSet<NodeID>
