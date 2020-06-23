@@ -418,7 +418,7 @@ mod quorum_set_tests {
     // ordering of QuorumSetMembers should not matter
     fn test_quorum_set_equality_1() {
         let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");
-        let quorum_set_2 = quorum_set_from_str("([2], 1, 0, ([2],4,3), ([2],6,5,7))");
+        let quorum_set_2 = quorum_set_from_str("([2], 1, 0, ([2],3,4), ([2],5,6,7))");
         assert_eq!(quorum_set_1, quorum_set_2);
     }
 
