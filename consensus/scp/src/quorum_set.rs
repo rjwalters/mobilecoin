@@ -410,17 +410,18 @@ mod quorum_set_tests {
         assert_eq!(qs, qs_sorted);
     }
 
+    #[test]
     // ordering of QuorumSetMembers should not matter
     fn test_quorum_set_equality_1() {
         let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");
-        let quorum_set_2 = quorum_set_from_str("([2], 1, 0, ([2],4,3), ([2],5,6,7))");
+        let quorum_set_2 = quorum_set_from_str("([2], 1, 0, ([2],4,3), ([2],5,7,6))");
         assert_eq!(quorum_set_1, quorum_set_2);
     }
 
     #[test]
     // ordering of members should not matter wrt member Enum type
     fn test_quorum_set_equality_2() {
-        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");    
+        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");
         let quorum_set_2 = quorum_set_from_str("([2], 1, ([2],3,4), 0, ([2],5,6,7))");
         assert_eq!(quorum_set_1, quorum_set_2);
     }
@@ -428,7 +429,7 @@ mod quorum_set_tests {
     #[test]
     // ordering of members inside inner sets should not matter
     fn test_quorum_set_equality_3() {
-        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");    
+        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");
         let quorum_set_2 = quorum_set_from_str("([2], 1, 0, ([2],4,3), ([2],5,7,6))");
         assert_eq!(quorum_set_1, quorum_set_2);
     }
