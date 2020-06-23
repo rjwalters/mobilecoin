@@ -2737,7 +2737,7 @@ mod ballot_protocol_tests {
     // An "uncommitted" node should issue `accept prepare <n,V>` when it sees a blocking set that
     // issues `accept prepare <n, V>`. It should not issue any statement until then.
     fn test_uncommitted_to_blocking_set_accepts(logger: Logger) {
-        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))"));
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))");
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
@@ -2830,7 +2830,7 @@ mod ballot_protocol_tests {
     // 1) A blocking set issues `accept prepare<1,C>, or
     // 2) A quorum votes or accepts prepare<1,C>
     fn test_votes_to_accepts_same_value_case_1(logger: Logger) {
-        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))"));
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))");
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
@@ -3065,7 +3065,7 @@ mod ballot_protocol_tests {
     // 1) A blocking set issues `accept prepare<1,C>, or
     // 2) A quorum votes or accepts prepare<1,C>
     fn test_votes_to_accepts_same_value_case_2(logger: Logger) {
-        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))"));
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))");
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
