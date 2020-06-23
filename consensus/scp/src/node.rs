@@ -319,14 +319,14 @@ mod tests {
         // A two-node network, where the only quorum is both nodes.
         let mut node1 = Node::<u32, TransactionValidationError>::new(
             test_node_id(1),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2)]),
+            quorum_set_from_str("([1],2)"),
             Arc::new(trivial_validity_fn),
             Arc::new(trivial_combine_fn),
             logger.clone(),
         );
         let mut node2 = Node::<u32, TransactionValidationError>::new(
             test_node_id(2),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(1)]),
+            quorum_set_from_str("([1],1)"),
             Arc::new(trivial_validity_fn),
             Arc::new(trivial_combine_fn),
             logger.clone(),

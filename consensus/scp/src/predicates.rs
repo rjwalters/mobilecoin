@@ -239,52 +239,11 @@ mod predicates_tests {
     // BallotSetPredicate can be used to pick a quorum that intersects with a given set of ballots.
     pub fn test_ballot_set_predicate_quorum() {
         let local_node_id = test_node_id(1);
-        let local_node_quorum_set = QuorumSet::new_with_node_ids(
-            2,
-            vec![
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-
-        let node_2_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(3),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-        let node_3_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-        let node_4_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(5),
-            ],
-        );
-        let node_5_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(4),
-            ],
-        );
+        let local_node_quorum_set = quorum_set_from_str("([2],2,3,4,5)");
+        let node_2_quorum_set = quorum_set_from_str("([1],1,3,4,5)");
+        let node_3_quorum_set = quorum_set_from_str("([1],1,2,4,5)");
+        let node_4_quorum_set = quorum_set_from_str("([1],1,2,3,5)");
+        let node_5_quorum_set = quorum_set_from_str("([1],1,2,3,4)");
 
         let ballot_1 = Ballot::new(1, &[1111]);
         let ballot_2 = Ballot::new(1, &[2222]);
@@ -351,26 +310,11 @@ mod predicates_tests {
     // BallotSetPredicate can be used to pick a blocking set that intersects with a given set of ballots.
     pub fn test_ballot_set_predicate_blocking_set() {
         // Node 2 and 3 form a blocking set. Node 5 and 6 also form a blocking set.
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
-        let node_5_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(6), test_node_id(7)]);
-        let node_6_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(5), test_node_id(7)]);
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))");
+        let node_2_quorum_set = quorum_set_from_str("([1],3,4)");
+        let node_3_quorum_set = quorum_set_from_str("([1],2,4)");
+        let node_5_quorum_set = quorum_set_from_str("([1],6,7)");
+        let node_6_quorum_set = quorum_set_from_str("([1],5,7)");
 
         let ballot_1 = Ballot::new(1, &[1111]);
         let ballot_2 = Ballot::new(1, &[2222]);
@@ -436,52 +380,11 @@ mod predicates_tests {
     // ValueSetPredicate can be used to pick a set of values that has reached quorum.
     pub fn test_value_set_predicate_quorum() {
         let local_node_id = test_node_id(1);
-        let local_node_quorum_set = QuorumSet::new_with_node_ids(
-            2,
-            vec![
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-
-        let node_2_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(3),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-        let node_3_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-        let node_4_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(5),
-            ],
-        );
-        let node_5_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(4),
-            ],
-        );
+        let local_node_quorum_set = quorum_set_from_str("([2],2,3,4,5)");
+        let node_2_quorum_set = quorum_set_from_str("([1],1,3,4,5)");
+        let node_3_quorum_set = quorum_set_from_str("([1],1,2,4,5)");
+        let node_4_quorum_set = quorum_set_from_str("([1],1,2,3,5)");
+        let node_5_quorum_set = quorum_set_from_str("([1],1,2,3,4)");
 
         let values_1 = BTreeSet::from_iter(vec!["a".to_string(), "A".to_string()]);
         let values_2 = BTreeSet::from_iter(vec!["b".to_string(), "B".to_string()]);
@@ -544,26 +447,11 @@ mod predicates_tests {
     // ValueSetPredicate can be used to pick a set values that has reached blocking threshold.
     pub fn test_value_set_predicate_blocking_set() {
         // Node 2 and 3 form a blocking set. Node 5 and 6 also form a blocking set.
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
-        let node_5_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(6), test_node_id(7)]);
-        let node_6_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(5), test_node_id(7)]);
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))");
+        let node_2_quorum_set = quorum_set_from_str("([1],3,4)");
+        let node_3_quorum_set = quorum_set_from_str("([1],2,4)");
+        let node_5_quorum_set = quorum_set_from_str("([1],6,7)");
+        let node_6_quorum_set = quorum_set_from_str("([1],5,7)");
 
         let values_1 = BTreeSet::from_iter(vec!["a".to_string(), "A".to_string()]);
         let values_2 = BTreeSet::from_iter(vec!["b".to_string(), "B".to_string()]);
@@ -625,52 +513,11 @@ mod predicates_tests {
     // MinMaxPredicate can be used to narrow down min and max CN/HN values in a quorum.
     pub fn test_quorum_min_max_predicate() {
         let local_node_id = test_node_id(1);
-        let local_node_quorum_set = QuorumSet::new_with_node_ids(
-            2,
-            vec![
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-
-        let node_2_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(3),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-        let node_3_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(4),
-                test_node_id(5),
-            ],
-        );
-        let node_4_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(5),
-            ],
-        );
-        let node_5_quorum_set = QuorumSet::new_with_node_ids(
-            1,
-            vec![
-                test_node_id(1),
-                test_node_id(2),
-                test_node_id(3),
-                test_node_id(4),
-            ],
-        );
+        let local_node_quorum_set = quorum_set_from_str("([2],2,3,4,5)");
+        let node_2_quorum_set = quorum_set_from_str("([1],1,3,4,5)");
+        let node_3_quorum_set = quorum_set_from_str("([1],1,2,4,5)");
+        let node_4_quorum_set = quorum_set_from_str("([1],1,2,3,5)");
+        let node_5_quorum_set = quorum_set_from_str("([1],1,2,3,4)");
 
         let ballot_1 = Ballot::new(1, &["a".to_string(), "A".to_string()]);
         let ballot_2 = Ballot::new(1, &["b".to_string(), "B".to_string()]);
