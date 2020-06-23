@@ -2437,7 +2437,7 @@ mod ballot_protocol_tests {
     fn test_confirmed_nominated_after_accepted_prepared(logger: Logger) {
         let node_1 = (test_node_id(1), quorum_set_from_str("([1],2,3,4)"));
         let node_2 = (test_node_id(2), quorum_set_from_str("([1],1,3,4)"));
-        let node_2 = (test_node_id(3), quorum_set_from_str("([1],1,2,4)"));
+        let node_3 = (test_node_id(3), quorum_set_from_str("([1],1,2,4)"));
 
         let slot_index = 0;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
