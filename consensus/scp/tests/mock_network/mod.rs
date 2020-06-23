@@ -9,7 +9,6 @@ use mc_consensus_scp::{
     msg::Msg,
     node::{Node, ScpNode},
     quorum_set::QuorumSet,
-    test_utils,
 };
 use std::{
     collections::BTreeSet,
@@ -19,6 +18,9 @@ use std::{
     thread::JoinHandle,
     time::{Duration, Instant},
 };
+
+#[cfg(test)]
+use mc_consensus_scp::test_utils;
 
 // Controls test parameters
 #[derive(Clone)]

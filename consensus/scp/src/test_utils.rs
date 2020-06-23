@@ -3,7 +3,7 @@
 #![cfg(test)]
 
 //! Utilities for Stellar Consensus Protocol tests.
-use crate::{core_types::Value, slot::Slot, QuorumSet, SlotIndex};
+use crate::{core_types::Value, slot::Slot, QuorumSet, QuorumSetMember, SlotIndex};
 use mc_common::{logger::Logger, NodeID, ResponderId};
 use mc_crypto_keys::Ed25519Pair;
 use mc_util_from_random::FromRandom;
@@ -210,7 +210,7 @@ pub fn test_quorum_set_from_string(
                             quorum_set.members.push(QuorumSetMember::Node(node_id));
                         }
                         Rule::quorum_set => {
-                            let inner_set = qs_from_string(member.as_str())?;
+                            let inner_set = test_quorum_set_from_string(member.as_str())?;
                             quorum_set
                                 .members
                                 .push(QuorumSetMember::InnerSet(inner_set));
@@ -238,7 +238,7 @@ pub fn test_quorum_set_to_string(quorum_set: &QuorumSet<NodeID>) -> String {
             }
             QuorumSetMember::InnerSet(inner_set) => {
                 quorum_set_string.push(',');
-                quorum_set_string.push_str(&qs_to_string(inner_set));
+                quorum_set_string.push_str(&test_quorum_set_to_string(inner_set));
             }
         }
     }
