@@ -3544,12 +3544,10 @@ mod ballot_protocol_tests {
     // A node issues "confirm prepare <n,C>" when a quorum issues "accept prepare <n,C>".
     fn test_accept_prepare_to_confirm_prepare_cycle(logger: Logger) {
         // Nodes 1, 2, 3, 4 form a cyclic quorum structure.
-
-        let local_node = (test_node_id(1, quorum_set_from_str("([1],2)"));
+        let local_node = (test_node_id(1), quorum_set_from_str("([1],2)"));
         let node_2 = (test_node_id(2), quorum_set_from_str("([1],3)"));
         let node_3 = (test_node_id(3), quorum_set_from_str("([1],4)"));
         let node_4 = (test_node_id(4), quorum_set_from_str("([1],1)"));
-
 
         let slot_index = 0;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
@@ -3967,15 +3965,8 @@ mod ballot_protocol_tests {
     // Regression test for Externalize with infinite counter.
     fn test_handle_externalize(logger: Logger) {
         // A two-node network, where the only quorum is both nodes.
-        let node_1 = (
-            test_node_id(1),
-            quorum_set_from_str("([1],2)]),
-        );
-
-        let node_2 = (
-            test_node_id(2),
-            quorum_set_from_str("([1],1)]),
-        );
+        let node_1 = (test_node_id(1),quorum_set_from_str("([1],2)"));
+        let node_2 = (test_node_id(2),quorum_set_from_str("([1],1)"));
 
         let slot_index = 2;
         let mut slot = Slot::<u32, _>::new(
