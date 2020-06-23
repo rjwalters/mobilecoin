@@ -184,8 +184,9 @@ pub fn three_node_dense_graph() -> (
 /// Generates a QuorumSet<NodeID> from a string using pest parser
 pub fn quorum_set_from_str(
     quorum_set_str: &str,
-) -> Result<QuorumSet<NodeID>, pest::error::Error<Rule>> {
-    let inner_rules = QuorumSetParser::parse(Rule::quorum_set, quorum_set_str)?
+) -> QuorumSet<NodeID> {
+    let inner_rules = QuorumSetParser::parse(Rule::quorum_set, quorum_set_str)
+        .expect("failed to parse")
         .next()
         .unwrap()
         .into_inner();
@@ -208,7 +209,7 @@ pub fn quorum_set_from_str(
                             quorum_set.members.push(QuorumSetMember::Node(node_id));
                         }
                         Rule::quorum_set => {
-                            let inner_set = quorum_set_from_str(member.as_str())?;
+                            let inner_set = quorum_set_from_str(member.as_str());
                             quorum_set
                                 .members
                                 .push(QuorumSetMember::InnerSet(inner_set));
@@ -251,7 +252,7 @@ mod quorum_set_parser_tests {
     #[test]
     fn test_quorum_set_from_str() {
         let qs_str = "([3],1,2,3,4,([2],5,6,([1],7,8)))";
-        let qs = quorum_set_from_str(qs_str).expect("failed to parse");
+        let qs = quorum_set_from_str(qs_str);
         let qs_new_string = quorum_set_to_string(&qs);
         assert_eq!(qs_string, &qs_new_string);
     }
@@ -260,7 +261,7 @@ mod quorum_set_parser_tests {
     #[should_panic]
     fn test_quorum_set_from_str_error() {
         let bad_qs_str = "([3],1, [5], 2,3, 4,([2],5, 6,([1],8,7)))";
-        let _qs = quorum_set_from_str(bad_qs_str).expect("failed to parse");
+        let _qs = quorum_set_from_str(bad_qs_str);
     }
 }
 
