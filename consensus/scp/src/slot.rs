@@ -1706,7 +1706,7 @@ impl<V: Value, ValidationError: Display> Slot<V, ValidationError> {
 #[cfg(test)]
 mod nominate_protocol_tests {
     use super::*;
-    use crate::{core_types::*, quorum_set::*, test_utils::*};
+    use crate::{core_types::*, test_utils::*};
     use mc_common::logger::test_with_logger;
 
     #[test_with_logger]
