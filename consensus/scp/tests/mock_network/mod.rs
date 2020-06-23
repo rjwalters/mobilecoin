@@ -20,7 +20,7 @@ use std::{
 };
 
 #[cfg(test)]
-use mc_consensus_scp::test_utils;
+use crate::test_utils;
 
 // Controls test parameters
 #[derive(Clone)]
