@@ -13,6 +13,7 @@ use pest::Parser;
 use pest_derive::Parser;
 /// Helper for parsing quorum sets from string representations using "pest"
 /// Used in crate tests.
+#[doc="PEST Parser"]
 #[derive(Parser)]
 #[grammar = "quorum_set_parser.pest"]
 struct QuorumSetParser;
