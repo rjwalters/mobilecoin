@@ -1,5 +1,7 @@
 // Copyright (c) 2018-2020 MobileCoin Inc.
 
+#![cfg(test)]
+
 //! Utilities for Stellar Consensus Protocol tests.
 use crate::{core_types::Value, slot::Slot, QuorumSet, SlotIndex};
 use mc_common::{logger::Logger, NodeID, ResponderId};
@@ -8,6 +10,14 @@ use mc_util_from_random::FromRandom;
 use rand::SeedableRng;
 use rand_hc::Hc128Rng as FixedRng;
 use std::{collections::BTreeSet, fmt, str::FromStr, sync::Arc};
+
+use pest::Parser;
+use pest_derive::Parser;
+/// Helper for parsing quorum sets from string representations using "pest"
+/// Used in crate tests.
+#[derive(Parser)]
+#[grammar = "quorum_set_parser.pest"]
+struct QuorumSetParser;
 
 /// Error for transaction validation
 pub struct TransactionValidationError;
@@ -56,6 +66,19 @@ pub fn test_node_id_and_signer(node_id: u32) -> (NodeID, Ed25519Pair) {
         },
         signer_keypair,
     )
+}
+
+/// Recovers the u32 node_id value for a NodeID created using test_node_id_and_signer
+pub fn recover_test_node_index(node_id: &NodeID) -> u32 {
+    node_id
+        .responder_id
+        .0
+        .split('.')
+        .fuse()
+        .next()
+        .expect("unexpected responder_id")[4..]
+        .parse::<u32>()
+        .expect("unable to parse node index")
 }
 
 /// Creates a new slot.
@@ -153,3 +176,93 @@ pub fn three_node_dense_graph() -> (
     );
     (node_1, node_2, node_3)
 }
+
+
+///////////////////////////////////////////////////////////////////////////////
+/// QuorumSet Parsing
+///////////////////////////////////////////////////////////////////////////////
+
+
+/// Generates a QuorumSet<NodeID> from a string using pest parser
+pub fn test_quorum_set_from_string(
+    quorum_set_string: &str,
+) -> Result<QuorumSet<NodeID>, pest::error::Error<Rule>> {
+    let inner_rules = QuorumSetParser::parse(Rule::quorum_set, quorum_set_string)?
+        .next()
+        .unwrap()
+        .into_inner();
+    let mut quorum_set: QuorumSet<NodeID> = QuorumSet::empty();
+    for pair in inner_rules {
+        match pair.as_rule() {
+            Rule::empty_set => {
+                return Ok(quorum_set);
+            }
+            Rule::threshold => {
+                let threshold_string = pair.into_inner().next().unwrap().as_str();
+                quorum_set.threshold = str::parse(threshold_string).unwrap();
+            }
+            Rule::members => {
+                for member in pair.into_inner() {
+                    match member.as_rule() {
+                        Rule::node => {
+                            let node: u32 = str::parse::<u32>(member.as_str()).unwrap();
+                            let node_id = test_node_id(node);
+                            quorum_set.members.push(QuorumSetMember::Node(node_id));
+                        }
+                        Rule::quorum_set => {
+                            let inner_set = qs_from_string(member.as_str())?;
+                            quorum_set
+                                .members
+                                .push(QuorumSetMember::InnerSet(inner_set));
+                        }
+                        _ => panic!("unexpected rule!"),
+                    }
+                }
+            }
+            _ => panic!("unexpected rule!"),
+        }
+    }
+    Ok(quorum_set)
+}
+
+/// creates a easy-to-read string from a QuorumSet<NodeID>
+pub fn test_quorum_set_to_string(quorum_set: &QuorumSet<NodeID>) -> String {
+    let mut quorum_set_string = format!("([{}]", quorum_set.threshold);
+    for member in quorum_set.members.iter() {
+        match member {
+            QuorumSetMember::Node(node_id) => {
+                quorum_set_string.push_str(&format!(
+                    ",{}",
+                    recover_test_node_index(node_id)
+                ));
+            }
+            QuorumSetMember::InnerSet(inner_set) => {
+                quorum_set_string.push(',');
+                quorum_set_string.push_str(&qs_to_string(inner_set));
+            }
+        }
+    }
+    quorum_set_string.push(')');
+    quorum_set_string
+}
+
+#[cfg(test)]
+mod quorum_set_parser_tests {
+    use super::*;
+
+    #[test]
+    fn test_quorum_set_construction() {
+        let qs_string = "([3],1,2,3,4,([2],5,6,([1],7,8)))".to_owned();
+        let qs = test_quorum_set_from_string(&qs_string).expect("failed to parse");
+        let qs_new_string = test_quorum_set_to_string(&qs);
+        assert_eq!(qs_string, qs_new_string);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_quorum_set_parser_fails() {
+        let bad_qs_string = "([3],1, [5], 2,3, 4,([2],5, 6,([1],8,7)))".to_owned();
+        let _qs = test_quorum_set_from_string(&bad_qs_string).expect("failed to parse");
+    }
+}
+
