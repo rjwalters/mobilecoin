@@ -181,12 +181,11 @@ pub fn three_node_dense_graph() -> (
 /// QuorumSet Parsing
 ///////////////////////////////////////////////////////////////////////////////
 
-
 /// Generates a QuorumSet<NodeID> from a string using pest parser
-pub fn test_quorum_set_from_string(
-    quorum_set_string: &str,
+pub fn quorum_set_from_str(
+    quorum_set_str: &str,
 ) -> Result<QuorumSet<NodeID>, pest::error::Error<Rule>> {
-    let inner_rules = QuorumSetParser::parse(Rule::quorum_set, quorum_set_string)?
+    let inner_rules = QuorumSetParser::parse(Rule::quorum_set, quorum_set_str)?
         .next()
         .unwrap()
         .into_inner();
@@ -209,7 +208,7 @@ pub fn test_quorum_set_from_string(
                             quorum_set.members.push(QuorumSetMember::Node(node_id));
                         }
                         Rule::quorum_set => {
-                            let inner_set = test_quorum_set_from_string(member.as_str())?;
+                            let inner_set = quorum_set_from_str(member.as_str())?;
                             quorum_set
                                 .members
                                 .push(QuorumSetMember::InnerSet(inner_set));
@@ -225,7 +224,7 @@ pub fn test_quorum_set_from_string(
 }
 
 /// creates a easy-to-read string from a QuorumSet<NodeID>
-pub fn test_quorum_set_to_string(quorum_set: &QuorumSet<NodeID>) -> String {
+pub fn quorum_set_to_string(quorum_set: &QuorumSet<NodeID>) -> String {
     let mut quorum_set_string = format!("([{}]", quorum_set.threshold);
     for member in quorum_set.members.iter() {
         match member {
@@ -237,7 +236,7 @@ pub fn test_quorum_set_to_string(quorum_set: &QuorumSet<NodeID>) -> String {
             }
             QuorumSetMember::InnerSet(inner_set) => {
                 quorum_set_string.push(',');
-                quorum_set_string.push_str(&test_quorum_set_to_string(inner_set));
+                quorum_set_string.push_str(&quorum_set_to_string(inner_set));
             }
         }
     }
@@ -250,18 +249,18 @@ mod quorum_set_parser_tests {
     use super::*;
 
     #[test]
-    fn test_quorum_set_construction() {
-        let qs_string = "([3],1,2,3,4,([2],5,6,([1],7,8)))".to_owned();
-        let qs = test_quorum_set_from_string(&qs_string).expect("failed to parse");
-        let qs_new_string = test_quorum_set_to_string(&qs);
-        assert_eq!(qs_string, qs_new_string);
+    fn test_quorum_set_from_str() {
+        let qs_str = "([3],1,2,3,4,([2],5,6,([1],7,8)))";
+        let qs = quorum_set_from_str(qs_str).expect("failed to parse");
+        let qs_new_string = quorum_set_to_string(&qs);
+        assert_eq!(qs_string, &qs_new_string);
     }
 
     #[test]
     #[should_panic]
-    fn test_quorum_set_parser_fails() {
-        let bad_qs_string = "([3],1, [5], 2,3, 4,([2],5, 6,([1],8,7)))".to_owned();
-        let _qs = test_quorum_set_from_string(&bad_qs_string).expect("failed to parse");
+    fn test_quorum_set_from_str_error() {
+        let bad_qs_str = "([3],1, [5], 2,3, 4,([2],5, 6,([1],8,7)))";
+        let _qs = quorum_set_from_str(bad_qs_str).expect("failed to parse");
     }
 }
 

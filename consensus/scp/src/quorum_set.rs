@@ -406,34 +406,19 @@ impl<ID: GenericNodeId + AsRef<ResponderId>> From<&QuorumSet<ID>> for QuorumSet<
 #[cfg(test)]
 mod quorum_set_tests {
     use super::*;
-    use crate::{core_types::*, msg::*, predicates::*, test_utils::test_node_id};
+    use crate::{
+        core_types::*,
+        msg::*,
+        predicates::*,
+        test_utils::{quorum_set_from_str, test_node_id},
+    };
     use mc_common::ResponderId;
 
     #[test]
     // ordering of QuorumSetMembers should not matter
     fn test_quorum_set_equality() {
-        let quorum_set_1: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-        let quorum_set_2: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(7), test_node_id(6)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_two, inner_quorum_set_one])
-        };
+        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");
+        let quorum_set_2 = quorum_set_from_str("([2], 1, ([2],4,3), 0, ([2],6,5,7))");
         assert_eq!(quorum_set_1, quorum_set_2);
     }
 
@@ -441,22 +426,9 @@ mod quorum_set_tests {
     // findBlockingSet returns an empty set when there is no blocking set
     fn test_no_blocking_set() {
         // Node 2 and 3 form a blocking set
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_5_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(6), test_node_id(7)]);
+        let local_node_quorum_set = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
+        let node_2_quorum_set = quorum_set_from_str("([1], 3, 4)");
+        let node_5_quorum_set = quorum_set_from_str("([1], 6, 7)");
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
@@ -488,22 +460,9 @@ mod quorum_set_tests {
     // findBlockingSet returns the correct set of nodes when there is a blocking set
     fn test_has_blocking_set() {
         // Node 2 and 3 form a blocking set
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
+        let local_node_quorum_set = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
+        let node_2_quorum_set = quorum_set_from_str("([1], 3, 4)");
+        let node_3_quorum_set = quorum_set_from_str("([1], 2, 4)");
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
@@ -539,22 +498,9 @@ mod quorum_set_tests {
     // findBlockingSet returns an empty set if the predicate returns false for the blocking set
     fn test_blocking_set_with_false_predicate() {
         // Node 2 and 3 form a blocking set
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
+        let local_node_quorum_set = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
+        let node_2_quorum_set = quorum_set_from_str("([1], 3, 4)");
+        let node_3_quorum_set = quorum_set_from_str("([1], 2, 4)");
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
@@ -587,23 +533,11 @@ mod quorum_set_tests {
     // findQuorum returns an empty set when there is no quorum
     fn test_no_quorum() {
         // Node 2 and 3 form a blocking set. Node 2, 3, 5, 6 form a quorum.
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
+        let local_node_quorum_set = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
         let local_node_id = test_node_id(1);
 
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
+        let node_2_quorum_set = quorum_set_from_str("([1], 3, 4)");
+        let node_3_quorum_set = quorum_set_from_str("([1], 2, 4)");
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
@@ -637,27 +571,13 @@ mod quorum_set_tests {
     // findQuorum returns the correct set of nodes when there is a quorum
     fn test_has_quorum() {
         // Node 2 and 3 form a blocking set. Node 2, 3, 5, 6 form a quorum.
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
+        let local_node_quorum_set = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
         let local_node_id = test_node_id(1);
 
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
-        let node_5_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(6), test_node_id(7)]);
-        let node_6_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(5), test_node_id(7)]);
+        let node_2_quorum_set = quorum_set_from_str("([1], 3, 4)");
+        let node_3_quorum_set = quorum_set_from_str("([1], 2, 4)");
+        let node_5_quorum_set = quorum_set_from_str("([1], 6, 7)");
+        let node_6_quorum_set = quorum_set_from_str("([1], 5, 7)");
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
@@ -708,27 +628,13 @@ mod quorum_set_tests {
     // findQuorum returns an empty set when there is a quorum but the predicate returns false
     fn test_has_quorum_with_false_predicate() {
         // Node 2 and 3 form a blocking set. Node 2, 3, 5, 6 form a quorum.
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
+        let local_node_quorum_set = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
         let local_node_id = test_node_id(1);
 
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
-        let node_5_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(6), test_node_id(7)]);
-        let node_6_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(5), test_node_id(7)]);
+        let node_2_quorum_set = quorum_set_from_str("([1], 3, 4)");
+        let node_3_quorum_set = quorum_set_from_str("([1], 2, 4)");
+        let node_5_quorum_set = quorum_set_from_str("([1], 6, 7)");
+        let node_6_quorum_set = quorum_set_from_str("([1], 5, 7)");
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
@@ -769,26 +675,9 @@ mod quorum_set_tests {
     #[test]
     // Quorum set can be constructed with ResponderId
     fn test_blocking_set_with_responder_id() {
-        // Quorum set by ResponderId, as employed by e.g. mobilecoind
-        let mobilecoind_quorum_set: QuorumSet<ResponderId> = {
-            let inner_quorum_set_one: QuorumSet<ResponderId> = QuorumSet::new_with_node_ids(
-                2,
-                vec![
-                    test_node_id(2).responder_id,
-                    test_node_id(3).responder_id,
-                    test_node_id(4).responder_id,
-                ],
-            );
-            let inner_quorum_set_two: QuorumSet<ResponderId> = QuorumSet::new_with_node_ids(
-                2,
-                vec![
-                    test_node_id(5).responder_id,
-                    test_node_id(6).responder_id,
-                    test_node_id(7).responder_id,
-                ],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
+        let mut node_id_quorum_set: QuorumSet<NodeId> = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
+
+        let mobilecoind_quorum_set = QuorumSet<ResponderId>::from(&node_id_quorum_set);
 
         let topic = Topic::Prepare(PreparePayload::<u32> {
             B: Ballot::new(1, &[1234, 5678]),
