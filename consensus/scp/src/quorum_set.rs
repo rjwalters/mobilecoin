@@ -402,7 +402,6 @@ mod quorum_set_tests {
     use mc_common::ResponderId;
 
     #[test]
-
     // quorum sets should sort recursively
     fn test_quorum_set_sorting() {
         let qs = quorum_set_from_str("([2], 1, ([2],3, 2, ([2],5,7,6)), 0)");
@@ -411,11 +410,10 @@ mod quorum_set_tests {
         assert_eq!(qs, qs_sorted);
     }
 
-    #[test]
-    // ordering of members should not matter
+    // ordering of QuorumSetMembers should not matter
     fn test_quorum_set_equality_1() {
-        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, 2, 3");
-        let quorum_set_2 = quorum_set_from_str("([2], 3, 1, 2, 0");
+        let quorum_set_1 = quorum_set_from_str("([2], 0, 1, ([2],3,4), ([2],5,6,7))");
+        let quorum_set_2 = quorum_set_from_str("([2], 1, 0, ([2],4,3), ([2],6,5,7))");
         assert_eq!(quorum_set_1, quorum_set_2);
     }
 
