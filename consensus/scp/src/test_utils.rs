@@ -254,7 +254,7 @@ mod quorum_set_parser_tests {
         let qs_str = "([3],1,2,3,4,([2],5,6,([1],7,8)))";
         let qs = quorum_set_from_str(qs_str);
         let qs_new_string = quorum_set_to_string(&qs);
-        assert_eq!(qs_string, &qs_new_string);
+        assert_eq!(qs_str, &qs_new_string);
     }
 
     #[test]
