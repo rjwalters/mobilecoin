@@ -2753,12 +2753,10 @@ mod ballot_protocol_tests {
 
         // Nodes 2 and 3 are a blocking set.
         let node_2_id = test_node_id(2);
-        let node_2_quorum_set =
-            quorum_set_from_str("([1],3,4)]);
+        let node_2_quorum_set = quorum_set_from_str("([1],3,4)");
 
         let node_3_id = test_node_id(3);
-        let node_3_quorum_set =
-            quorum_set_from_str("([1],2,4)]);
+        let node_3_quorum_set = quorum_set_from_str("([1],2,4)");
 
         // A statement from Node 2 is not enough for the local node to emit a statement.
         {
