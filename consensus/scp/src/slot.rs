@@ -3104,7 +3104,7 @@ mod ballot_protocol_tests {
         let node_6 = (test_node_id(6), quorum_set_from_str("([1],5,7)"));
         let node_7 = (test_node_id(7), quorum_set_from_str("([1],5,6)"));
 
-        let other_nodes = vec![node2, node3, node6, node7];
+        let other_nodes = vec![node_2, node_3, node_6, node_7];
 
         let msgs: Vec<Msg<u32>> = other_nodes
             .iter()
