@@ -675,7 +675,7 @@ mod quorum_set_tests {
     #[test]
     // Quorum set can be constructed with ResponderId
     fn test_blocking_set_with_responder_id() {
-        let mut node_id_quorum_set: QuorumSet<NodeID> = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
+        let node_id_quorum_set: QuorumSet<NodeID> = quorum_set_from_str("([2], ([2],2,3,4), ([2],5,6,7))");
 
         let mobilecoind_quorum_set = QuorumSet::<ResponderId>::from(&node_id_quorum_set);
 
