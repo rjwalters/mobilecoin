@@ -1,7 +1,5 @@
 // Copyright (c) 2018-2020 MobileCoin Inc.
 
-#![cfg(test)]
-
 //! Utilities for Stellar Consensus Protocol tests.
 use crate::{core_types::Value, slot::Slot, QuorumSet, QuorumSetMember, SlotIndex};
 use mc_common::{logger::Logger, NodeID, ResponderId};
