@@ -1892,15 +1892,7 @@ mod nominate_protocol_tests {
         // (V=2 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C">, P=<>, PP=<>, HN=0, CN=0)
         let msg_2 = Msg::new(
             test_node_id(2),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(3),
-                    test_node_id(4),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],1,3,4,5)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -1920,15 +1912,7 @@ mod nominate_protocol_tests {
         // (V=3 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C", "D">, P=<>, PP=<>, HN=0, CN=0)
         let msg_3 = Msg::new(
             test_node_id(3),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(2),
-                    test_node_id(4),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],1,2,4,5)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -1948,15 +1932,7 @@ mod nominate_protocol_tests {
         // (V=4 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C", "D">, P=<>, PP=<>, HN=0, CN=0)
         let msg_4 = Msg::new(
             test_node_id(4),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(2),
-                    test_node_id(3),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],1,2,3,5)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -1976,15 +1952,7 @@ mod nominate_protocol_tests {
         // (V=5 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C", "D">, P=<>, PP=<>, HN=0, CN=0)
         let msg_5 = Msg::new(
             test_node_id(5),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(2),
-                    test_node_id(3),
-                    test_node_id(4),
-                ],
-            ),
+            quorum_set_from_str("([3],1,2,3,4)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -2004,15 +1972,7 @@ mod nominate_protocol_tests {
         // (V=1 I=4731 NOM/PREP X=<>, Y=<"B">, B=<378, 1:["B"]>, P=<>, PP=<>, HN=0, CN=0)
         let mut slot = Slot::new(
             test_node_id(1),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(2),
-                    test_node_id(3),
-                    test_node_id(4),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],2,3,4,5)"),
             slot_index,
             Arc::new(trivial_validity_fn),
             Arc::new(trivial_combine_fn),
@@ -2053,15 +2013,7 @@ mod nominate_protocol_tests {
         // (V=1 I=4731 NOM/PREP X=<>, Y=<"B">, B=<378, 1:["B"]>, P=<>, PP=<>, HN=0, CN=0)
         let msg_1 = Msg::new(
             test_node_id(1),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(2),
-                    test_node_id(3),
-                    test_node_id(4),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],2,3,4,5)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -2081,15 +2033,7 @@ mod nominate_protocol_tests {
         // (V=3 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C", "D">, P=<>, PP=<>, HN=0, CN=0)
         let msg_3 = Msg::new(
             test_node_id(3),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(2),
-                    test_node_id(4),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],1,2,4,5)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -2109,15 +2053,7 @@ mod nominate_protocol_tests {
         // (V=4 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C", "D">, P=<>, PP=<>, HN=0, CN=0)
         let msg_4 = Msg::new(
             test_node_id(4),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(2),
-                    test_node_id(3),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],1,2,3,5)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -2137,15 +2073,7 @@ mod nominate_protocol_tests {
         // (V=5 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C", "D">, P=<>, PP=<>, HN=0, CN=0)
         let msg_5 = Msg::new(
             test_node_id(5),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(2),
-                    test_node_id(3),
-                    test_node_id(4),
-                ],
-            ),
+            quorum_set_from_str("([3],1,2,3,4)"),
             slot_index,
             Topic::NominatePrepare(
                 NominatePayload {
@@ -2165,15 +2093,7 @@ mod nominate_protocol_tests {
         // (V=2 I=4731 NOM/PREP X=<>, Y=<"A", "B", "C", "D">, B=<"A", "B", "C">, P=<>, PP=<>, HN=0, CN=0)
         let mut slot = Slot::new(
             test_node_id(2),
-            QuorumSet::new_with_node_ids(
-                3,
-                vec![
-                    test_node_id(1),
-                    test_node_id(3),
-                    test_node_id(4),
-                    test_node_id(5),
-                ],
-            ),
+            quorum_set_from_str("([3],1,3,4,5)"),
             slot_index,
             Arc::new(trivial_validity_fn),
             Arc::new(trivial_combine_fn),
@@ -2328,7 +2248,7 @@ mod ballot_protocol_tests {
     // An "uncommitted" node should issue `vote-or-accept prepare <1,V>` when nomination produces values V.
     fn test_uncommitted_to_votes(logger: Logger) {
         let node_id = test_node_id(1);
-        let quorum_set = QuorumSet::new_with_node_ids(1, vec![test_node_id(2)]);
+        let quorum_set = quorum_set_from_str("([1],2)");
 
         let mut slot = Slot::<u32, TransactionValidationError>::new(
             node_id.clone(),
@@ -2370,20 +2290,8 @@ mod ballot_protocol_tests {
     // A node that has not issued confirmed prepare(b) should continue to vote for new, confirmed
     // nominated values when it advances to a new ballot.
     fn test_additional_confirmed_nominated_values(logger: Logger) {
-        let node_1 = (
-            test_node_id(1),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            ),
-        );
-        let node_2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(1), test_node_id(3), test_node_id(4)],
-            ),
-        );
+        let node_1 = (test_node_id(1), quorum_set_from_str("([1],2,3,4)"));
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],1,3,4)"));
 
         let slot_index = 0;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
@@ -2527,27 +2435,9 @@ mod ballot_protocol_tests {
     // A node that has issued "accept prepare(b)" but not "confirm prepare(b)" should include
     // confirmed nominated values when it advances to the next ballot.
     fn test_confirmed_nominated_after_accepted_prepared(logger: Logger) {
-        let node_1 = (
-            test_node_id(1),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            ),
-        );
-        let node_2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(1), test_node_id(3), test_node_id(4)],
-            ),
-        );
-        let node_3 = (
-            test_node_id(3),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(1), test_node_id(2), test_node_id(4)],
-            ),
-        );
+        let node_1 = (test_node_id(1), quorum_set_from_str("([1],2,3,4)"));
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],1,3,4)"));
+        let node_2 = (test_node_id(3), quorum_set_from_str("([1],1,2,4)"));
 
         let slot_index = 0;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
@@ -2659,27 +2549,9 @@ mod ballot_protocol_tests {
     // A node that has issued `confirm prepare(b)` should no longer include new confirmed nominated
     // values in its subsequent ballots.
     fn test_ignore_nominated_values_after_issuing_confirm_prepare(logger: Logger) {
-        let node_1 = (
-            test_node_id(1),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            ),
-        );
-        let node_2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(1), test_node_id(3), test_node_id(4)],
-            ),
-        );
-        let node_3 = (
-            test_node_id(3),
-            QuorumSet::new_with_node_ids(
-                1,
-                vec![test_node_id(1), test_node_id(2), test_node_id(4)],
-            ),
-        );
+        let node_1 = (test_node_id(1), quorum_set_from_str("([1],2,3,4)"));
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],1,3,4)"));
+        let node_3 = (test_node_id(3), quorum_set_from_str("([1],1,2,4)"));
 
         let slot_index = 0;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
@@ -2865,17 +2737,7 @@ mod ballot_protocol_tests {
     // An "uncommitted" node should issue `accept prepare <n,V>` when it sees a blocking set that
     // issues `accept prepare <n, V>`. It should not issue any statement until then.
     fn test_uncommitted_to_blocking_set_accepts(logger: Logger) {
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))"));
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
@@ -2892,11 +2754,11 @@ mod ballot_protocol_tests {
         // Nodes 2 and 3 are a blocking set.
         let node_2_id = test_node_id(2);
         let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
+            quorum_set_from_str("([1],3,4)]);
 
         let node_3_id = test_node_id(3);
         let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
+            quorum_set_from_str("([1],2,4)]);
 
         // A statement from Node 2 is not enough for the local node to emit a statement.
         {
@@ -2968,18 +2830,7 @@ mod ballot_protocol_tests {
     // 1) A blocking set issues `accept prepare<1,C>, or
     // 2) A quorum votes or accepts prepare<1,C>
     fn test_votes_to_accepts_same_value_case_1(logger: Logger) {
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))"));
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
@@ -3016,12 +2867,10 @@ mod ballot_protocol_tests {
 
         // Nodes 2 and 3 are a blocking set.
         let node_2_id = test_node_id(2);
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
+        let node_2_quorum_set = quorum_set_from_str("([1],3,4)");
 
         let node_3_id = test_node_id(3);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
+        let node_3_quorum_set = quorum_set_from_str("([1],2,4)");
 
         // A statement from only node_2 should not change the statement issued by the local node.
         {
@@ -3216,18 +3065,7 @@ mod ballot_protocol_tests {
     // 1) A blocking set issues `accept prepare<1,C>, or
     // 2) A quorum votes or accepts prepare<1,C>
     fn test_votes_to_accepts_same_value_case_2(logger: Logger) {
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))"));
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
@@ -3263,22 +3101,11 @@ mod ballot_protocol_tests {
         assert_eq!(slot.last_sent_msg, Some(initial_msg));
 
         // {local_node, 2, 3, 6, 7} is a quorum.
-        let node2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]),
-        );
-        let node3 = (
-            test_node_id(3),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]),
-        );
-        let node6 = (
-            test_node_id(6),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(5), test_node_id(7)]),
-        );
-        let node7 = (
-            test_node_id(7),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(5), test_node_id(6)]),
-        );
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],3,4)"));
+        let node_3 = (test_node_id(3), quorum_set_from_str("([1],2,4)"));
+        let node_6 = (test_node_id(6), quorum_set_from_str("([1],5,7)"));
+        let node_7 = (test_node_id(7), quorum_set_from_str("([1],5,6)"));
+
         let other_nodes = vec![node2, node3, node6, node7];
 
         let msgs: Vec<Msg<u32>> = other_nodes
@@ -3334,15 +3161,8 @@ mod ballot_protocol_tests {
     // who has issued "vote or accept prepare(b)".
     fn test_ballots_accepted_prepared_with_quorum(logger: Logger) {
         // The local_node and node_2 form a quorum.
-        let local_node = (
-            test_node_id(1),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(3)]),
-        );
-
-        let node_2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(1), test_node_id(3)]),
-        );
+        let local_node = (test_node_id(1), quorum_set_from_str("([1],2,3)"));
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],1,3)"));
 
         let slot_index = 2;
         let mut slot = Slot::<u32, _>::new(
@@ -3418,15 +3238,9 @@ mod ballot_protocol_tests {
         // {1, 2} is a quorum, and {1, 3} is a quorum.
         // This configuration is useful because {2} is not a blocking threshold for the local node,
         // which allows us to test the "is quorum but not blocking" scenario.
-        let local_node = (
-            test_node_id(1),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(3)]),
-        );
+        let local_node = (test_node_id(1), quorum_set_from_str("([1],2,3)"));
 
-        let node_2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(1)]),
-        );
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],1)"));
 
         let slot_index = 27;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
@@ -3508,18 +3322,7 @@ mod ballot_protocol_tests {
     // A node who has issued `vote prepare<1,C>` should issue `accept prepare <n,C2>` for C != C2
     // when it sees a blocking set issue `accept prepare <n, C2>.
     fn test_votes_to_accepts_different_value(logger: Logger) {
-        let local_node_quorum_set: QuorumSet = {
-            let inner_quorum_set_one = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(2), test_node_id(3), test_node_id(4)],
-            );
-            let inner_quorum_set_two = QuorumSet::new_with_node_ids(
-                2,
-                vec![test_node_id(5), test_node_id(6), test_node_id(7)],
-            );
-            QuorumSet::new_with_inner_sets(2, vec![inner_quorum_set_one, inner_quorum_set_two])
-        };
-
+        let local_node_quorum_set = quorum_set_from_str("([2],([2],2,3,4),([2],5,6,7))");
         let local_node_id = test_node_id(1);
         let slot_index = 0;
 
@@ -3556,12 +3359,10 @@ mod ballot_protocol_tests {
 
         // Nodes 2 and 3 are a blocking set.
         let node_2_id = test_node_id(2);
-        let node_2_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3), test_node_id(4)]);
+        let node_2_quorum_set = quorum_set_from_str("([1],3,4)");
 
         let node_3_id = test_node_id(3);
-        let node_3_quorum_set =
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2), test_node_id(4)]);
+        let node_3_quorum_set = quorum_set_from_str("([1],2,4)");
 
         let blocking_set = vec![
             (node_2_id, node_2_quorum_set),
@@ -3743,22 +3544,12 @@ mod ballot_protocol_tests {
     // A node issues "confirm prepare <n,C>" when a quorum issues "accept prepare <n,C>".
     fn test_accept_prepare_to_confirm_prepare_cycle(logger: Logger) {
         // Nodes 1, 2, 3, 4 form a cyclic quorum structure.
-        let local_node = (
-            test_node_id(1),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2)]),
-        );
-        let node_2 = (
-            test_node_id(2),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(3)]),
-        );
-        let node_3 = (
-            test_node_id(3),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(4)]),
-        );
-        let node_4 = (
-            test_node_id(4),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(1)]),
-        );
+
+        let local_node = (test_node_id(1, quorum_set_from_str("([1],2)"));
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],3)"));
+        let node_3 = (test_node_id(3), quorum_set_from_str("([1],4)"));
+        let node_4 = (test_node_id(4), quorum_set_from_str("([1],1)"));
+
 
         let slot_index = 0;
         let mut slot = Slot::<u32, TransactionValidationError>::new(
@@ -4178,12 +3969,12 @@ mod ballot_protocol_tests {
         // A two-node network, where the only quorum is both nodes.
         let node_1 = (
             test_node_id(1),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(2)]),
+            quorum_set_from_str("([1],2)]),
         );
 
         let node_2 = (
             test_node_id(2),
-            QuorumSet::new_with_node_ids(1, vec![test_node_id(1)]),
+            quorum_set_from_str("([1],1)]),
         );
 
         let slot_index = 2;
