@@ -4,9 +4,9 @@
 #![doc(include = "../README.md")]
 #![allow(non_snake_case)]
 
-// this lint directive does not allow macros
+// warning because this lint directive is broken for macros
 // https://github.com/rust-lang/rust/issues/59306
-// #![deny(missing_docs)]
+#![warn(missing_docs)]
 
 pub mod core_types;
 pub mod msg;
