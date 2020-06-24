@@ -231,7 +231,11 @@ impl<'a, V: Value, ID: GenericNodeId> Predicate<V, ID> for FuncPredicate<'a, V, 
 #[cfg(test)]
 mod predicates_tests {
     use super::*;
-    use crate::{core_types::*, msg::*, test_utils::{test_node_id, quorum_set_from_str}};
+    use crate::{
+        core_types::*,
+        msg::*,
+        test_utils::{quorum_set_from_str, test_node_id},
+    };
     use mc_common::HashMap;
     use std::iter::FromIterator;
 

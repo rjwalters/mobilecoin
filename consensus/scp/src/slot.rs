@@ -3963,8 +3963,8 @@ mod ballot_protocol_tests {
     // Regression test for Externalize with infinite counter.
     fn test_handle_externalize(logger: Logger) {
         // A two-node network, where the only quorum is both nodes.
-        let node_1 = (test_node_id(1),quorum_set_from_str("([1],2)"));
-        let node_2 = (test_node_id(2),quorum_set_from_str("([1],1)"));
+        let node_1 = (test_node_id(1), quorum_set_from_str("([1],2)"));
+        let node_2 = (test_node_id(2), quorum_set_from_str("([1],1)"));
 
         let slot_index = 2;
         let mut slot = Slot::<u32, _>::new(

@@ -108,18 +108,9 @@ pub fn three_node_cycle() -> (
     (NodeID, QuorumSet),
     (NodeID, QuorumSet),
 ) {
-    let node_1 = (
-        test_node_id(1),
-        quorum_set_from_str("([1],2)"),
-    );
-    let node_2 = (
-        test_node_id(2),
-        quorum_set_from_str("([1],3)"),
-    );
-    let node_3 = (
-        test_node_id(3),
-        quorum_set_from_str("([1],1)"),
-    );
+    let node_1 = (test_node_id(1), quorum_set_from_str("([1],2)"));
+    let node_2 = (test_node_id(2), quorum_set_from_str("([1],3)"));
+    let node_3 = (test_node_id(3), quorum_set_from_str("([1],1)"));
     (node_1, node_2, node_3)
 }
 
@@ -134,22 +125,10 @@ pub fn fig_2_network() -> (
     (NodeID, QuorumSet),
     (NodeID, QuorumSet),
 ) {
-    let node_1 = (
-        test_node_id(1),
-        quorum_set_from_str("([2],2,3)"),
-    );
-    let node_2 = (
-        test_node_id(2),
-        quorum_set_from_str("([2],3,4)"),
-    );
-    let node_3 = (
-        test_node_id(3),
-        quorum_set_from_str("([2],2,4)"),
-    );
-    let node_4 = (
-        test_node_id(4),
-        quorum_set_from_str("([2],2,4)"),
-    );
+    let node_1 = (test_node_id(1), quorum_set_from_str("([2],2,3)"));
+    let node_2 = (test_node_id(2), quorum_set_from_str("([2],3,4)"));
+    let node_3 = (test_node_id(3), quorum_set_from_str("([2],2,4)"));
+    let node_4 = (test_node_id(4), quorum_set_from_str("([2],2,4)"));
 
     (node_1, node_2, node_3, node_4)
 }
@@ -161,30 +140,18 @@ pub fn three_node_dense_graph() -> (
     (NodeID, QuorumSet),
     (NodeID, QuorumSet),
 ) {
-    let node_1 = (
-        test_node_id(1),
-        quorum_set_from_str("([2],2,3)"),
-    );
-    let node_2 = (
-        test_node_id(2),
-        quorum_set_from_str("([2],1,3)"),
-    );
-    let node_3 = (
-        test_node_id(3),
-        quorum_set_from_str("([2],1,2)"),
-    );
+    let node_1 = (test_node_id(1), quorum_set_from_str("([2],2,3)"));
+    let node_2 = (test_node_id(2), quorum_set_from_str("([2],1,3)"));
+    let node_3 = (test_node_id(3), quorum_set_from_str("([2],1,2)"));
     (node_1, node_2, node_3)
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////
 /// QuorumSet Parsing
 ///////////////////////////////////////////////////////////////////////////////
 
 /// Generates a QuorumSet<NodeID> from a string using pest parser
-pub fn quorum_set_from_str(
-    quorum_set_str: &str,
-) -> QuorumSet<NodeID> {
+pub fn quorum_set_from_str(quorum_set_str: &str) -> QuorumSet<NodeID> {
     let inner_rules = QuorumSetParser::parse(Rule::quorum_set, quorum_set_str)
         .expect("failed to parse")
         .next()
@@ -230,10 +197,7 @@ pub fn quorum_set_to_string(quorum_set: &QuorumSet<NodeID>) -> String {
     for member in quorum_set.members.iter() {
         match member {
             QuorumSetMember::Node(node_id) => {
-                quorum_set_string.push_str(&format!(
-                    ",{}",
-                    recover_test_node_index(node_id)
-                ));
+                quorum_set_string.push_str(&format!(",{}", recover_test_node_index(node_id)));
             }
             QuorumSetMember::InnerSet(inner_set) => {
                 quorum_set_string.push(',');
@@ -264,4 +228,3 @@ mod quorum_set_parser_tests {
         let _qs = quorum_set_from_str(bad_qs_str);
     }
 }
-
