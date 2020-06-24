@@ -80,17 +80,6 @@ impl<ID: GenericNodeId> QuorumSet<ID> {
         )
     }
 
-    /// Create a new quorum set from the given inner sets.
-    pub fn new_with_inner_sets(threshold: u32, inner_sets: Vec<Self>) -> Self {
-        Self::new(
-            threshold,
-            inner_sets
-                .into_iter()
-                .map(QuorumSetMember::InnerSet)
-                .collect(),
-        )
-    }
-
     /// A quorum set with no members and a threshold of 0.
     pub fn empty() -> Self {
         Self::new(0, vec![])
