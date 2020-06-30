@@ -6,7 +6,7 @@
 
 use crate::{
     counters,
-    tx_manager::{TxManager, TxManagerError, UntrustedInterfaces},
+    tx_manager::{TxManager, TxManagerError, UntrustedInterfaces}clear_pe
 };
 use mc_common::{
     logger::{log, Logger},
@@ -521,7 +521,7 @@ impl<
                 log::info!(self.logger, "sync_service reports we are no longer behind!");
 
                 // Reset scp state.
-                self.scp.clear_pending_slots();
+                self.scp.reset_slot_index();
 
                 // Clear any pending values that might no longer be valid.
                 let tx_manager = self.tx_manager.clone();
