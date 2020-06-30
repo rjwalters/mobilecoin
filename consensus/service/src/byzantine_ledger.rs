@@ -6,7 +6,7 @@
 
 use crate::{
     counters,
-    tx_manager::{TxManager, TxManagerError, UntrustedInterfaces}clear_pe
+    tx_manager::{TxManager, TxManagerError, UntrustedInterfaces},
 };
 use mc_common::{
     logger::{log, Logger},
@@ -521,7 +521,7 @@ impl<
                 log::info!(self.logger, "sync_service reports we are no longer behind!");
 
                 // Reset scp state.
-                self.scp.reset_slot_index();
+                self.scp.reset_slot_index(self.cur_slot);
 
                 // Clear any pending values that might no longer be valid.
                 let tx_manager = self.tx_manager.clone();
@@ -911,42 +911,20 @@ impl<
     }
 
     fn update_cur_metrics(&mut self) {
-        let slot_metrics = self.scp.get_slot_metrics(self.cur_slot);
+        let slot_metrics = self.scp.get_slot_metrics();
         counters::CUR_NUM_PENDING_VALUES.set(self.pending_values.len() as i64);
         counters::CUR_SLOT_NUM.set(self.cur_slot as i64);
-        counters::CUR_SLOT_PHASE.set(match slot_metrics.as_ref().map(|m| m.phase) {
-            None => 0,
-            Some(Phase::NominatePrepare) => 2,
-            Some(Phase::Prepare) => 3,
-            Some(Phase::Commit) => 4,
-            Some(Phase::Externalize) => 5,
+        counters::CUR_SLOT_PHASE.set(match slot_metrics.phase {
+            Phase::NominatePrepare => 2,
+            Phase::Prepare => 3,
+            Phase::Commit => 4,
+            Phase::Externalize => 5,
         });
-        counters::CUR_SLOT_NUM_VOTED_NOMINATED.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.num_voted_nominated as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_NUM_ACCEPTED_NOMINATED.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.num_accepted_nominated as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_NUM_CONFIRMED_NOMINATED.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.num_confirmed_nominated as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_NOMINATION_ROUND.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.cur_nomination_round as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_BALLOT_COUNTER
-            .set(slot_metrics.as_ref().map(|m| m.bN as i64).unwrap_or(0));
+        counters::CUR_SLOT_NUM_VOTED_NOMINATED.set(slot_metrics.num_voted_nominated as i64);
+        counters::CUR_SLOT_NUM_ACCEPTED_NOMINATED.set(slot_metrics.num_accepted_nominated as i64);
+        counters::CUR_SLOT_NUM_CONFIRMED_NOMINATED.set(slot_metrics.num_confirmed_nominated as i64);
+        counters::CUR_SLOT_NOMINATION_ROUND.set(slot_metrics.cur_nomination_round as i64);
+        counters::CUR_SLOT_BALLOT_COUNTER.set(slot_metrics.bN as i64);
     }
 }
 

@@ -151,8 +151,8 @@ pub trait ScpNode<V: Value>: Send {
     /// Get the current slot's index.
     fn current_slot_index(&self) -> SlotIndex;
 
-    /// Get metrics for a specific slot.
-    fn get_slot_metrics(&mut self, slot_index: SlotIndex) -> Option<SlotMetrics>;
+    /// Get metrics for the current slot.
+    fn get_slot_metrics(&mut self) -> SlotMetrics;
 
     /// Reset the current slot.
     fn reset_slot_index(&mut self, slot_index: SlotIndex);
@@ -289,10 +289,9 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
         self.current_slot.get_index()
     }
 
-    /// Get metrics for a specific slot.
-    fn get_slot_metrics(&mut self, _slot_index: SlotIndex) -> Option<SlotMetrics> {
-        // TODO: also retrieve metrics for recent previous slots.
-        Some(self.current_slot.get_metrics())
+    /// Get metrics for the current slot.
+    fn get_slot_metrics(&mut self) -> SlotMetrics {
+        self.current_slot.get_metrics()
     }
 
     /// Reset the current slot.
