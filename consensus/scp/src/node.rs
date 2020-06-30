@@ -32,8 +32,6 @@ pub struct Node<V: Value, ValidationError: Display> {
     /// The current slot that this node is attempting to reach consensus on.
     pub current_slot: Slot<V, ValidationError>,
 
-    // /// Map of last few slot indexes -> slots.
-    // pub pending: LruCache<SlotIndex, Slot<V, ValidationError>>,
     /// Map of last few slot indexes -> externalized slots.
     pub externalized: LruCache<SlotIndex, ExternalizePayload<V>>,
 
@@ -87,30 +85,6 @@ impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
         }
     }
 
-    // /// Get or crate a pending slot.
-    // fn get_or_create_pending_slot(
-    //     &mut self,
-    //     slot_index: SlotIndex,
-    // ) -> &mut Slot<V, ValidationError> {
-    //     // Create new Slot if necessary.
-    //     if !self.pending.contains(&slot_index) {
-    //         let mut slot = Slot::new(
-    //             self.ID.clone(),
-    //             self.Q.clone(),
-    //             slot_index,
-    //             self.validity_fn.clone(),
-    //             self.combine_fn.clone(),
-    //             self.logger.clone(),
-    //         );
-    //         slot.base_round_interval = self.scp_timebase;
-    //         slot.base_ballot_interval = self.scp_timebase;
-    //         self.pending.put(slot_index, slot);
-    //     }
-    //
-    //     // Return slot.
-    //     self.pending.get_mut(&slot_index).unwrap()
-    // }
-
     // Record the values externalized by the current slot and advance the current slot.
     fn externalize(
         &mut self,
@@ -159,12 +133,8 @@ pub trait ScpNode<V: Value>: Send {
     /// Get local node quorum set.
     fn quorum_set(&self) -> QuorumSet;
 
-    /// Submit a list of values of nomination.
-    fn nominate(
-        &mut self,
-        slot_index: SlotIndex,
-        values: BTreeSet<V>,
-    ) -> Result<Option<Msg<V>>, String>;
+    /// Submit a list of values for nomination.
+    fn nominate(&mut self, values: BTreeSet<V>) -> Result<Option<Msg<V>>, String>;
 
     /// Handle incoming message from the network.
     fn handle(&mut self, msg: &Msg<V>) -> Result<Option<Msg<V>>, String>;
@@ -177,6 +147,9 @@ pub trait ScpNode<V: Value>: Send {
 
     /// Process pending timeouts.
     fn process_timeouts(&mut self) -> Vec<Msg<V>>;
+
+    /// Get the current slot's index.
+    fn current_slot_index(&self) -> SlotIndex;
 
     /// Get metrics for a specific slot.
     fn get_slot_metrics(&mut self, slot_index: SlotIndex) -> Option<SlotMetrics>;
@@ -196,11 +169,7 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
     }
 
     /// Submit a list of values for nomination in the current slot.
-    fn nominate(
-        &mut self,
-        _slot_index: SlotIndex, // TODO: remove this
-        values: BTreeSet<V>,
-    ) -> Result<Option<Msg<V>>, String> {
+    fn nominate(&mut self, values: BTreeSet<V>) -> Result<Option<Msg<V>>, String> {
         if values.is_empty() {
             log::error!(self.logger, "nominate() called with 0 values.");
             return Ok(None);
@@ -316,6 +285,11 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
         self.current_slot.process_timeouts()
     }
 
+    /// Get the current slot's index.
+    fn current_slot_index(&self) -> SlotIndex {
+        self.current_slot.get_index()
+    }
+
     /// Get metrics for a specific slot.
     fn get_slot_metrics(&mut self, _slot_index: SlotIndex) -> Option<SlotMetrics> {
         // TODO: also retrieve metrics for recent previous slots.
@@ -363,7 +337,7 @@ mod tests {
         // Client(s) submits some values to node 2.
         let values = vec![1000, 2000];
         let msg = node2
-            .nominate(slot_index, BTreeSet::from_iter(values.clone()))
+            .nominate(BTreeSet::from_iter(values.clone()))
             .expect("error handling msg")
             .expect("no msg?");
 

@@ -143,15 +143,11 @@ impl<V: Value, N: ScpNode<V>> ScpNode<V> for LoggingScpNode<V, N> {
         self.node.quorum_set()
     }
 
-    fn nominate(
-        &mut self,
-        slot_index: SlotIndex,
-        values: BTreeSet<V>,
-    ) -> Result<Option<Msg<V>>, String> {
+    fn nominate(&mut self, values: BTreeSet<V>) -> Result<Option<Msg<V>>, String> {
+        let slot_index = self.node.current_slot_index();
         self.write(LoggedMsg::Nominate(slot_index, values.clone()))?;
 
-        let out_msg = self.node.nominate(slot_index, values)?;
-
+        let out_msg = self.node.nominate(values)?;
         if let Some(ref msg) = out_msg {
             self.write(LoggedMsg::OutgoingMsg(msg.clone()))?;
         }
@@ -188,6 +184,10 @@ impl<V: Value, N: ScpNode<V>> ScpNode<V> for LoggingScpNode<V, N> {
         }
 
         out_msgs
+    }
+
+    fn current_slot_index(&self) -> u64 {
+        self.node.current_slot_index()
     }
 
     fn get_slot_metrics(&mut self, slot_index: SlotIndex) -> Option<SlotMetrics> {

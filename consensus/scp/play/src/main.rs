@@ -121,10 +121,7 @@ fn main() {
                 assert_eq!(slot_index, cur_slot_index.unwrap_or(slot_index));
                 cur_slot_index = Some(slot_index);
 
-                if let Some(out_msg) = scp_node
-                    .nominate(slot_index, values)
-                    .expect("scp nominate failed")
-                {
+                if let Some(out_msg) = scp_node.nominate(values).expect("scp nominate failed") {
                     sent_msgs.push_back(out_msg);
                 }
             }

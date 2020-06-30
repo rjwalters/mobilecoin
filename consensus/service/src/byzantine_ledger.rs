@@ -634,15 +634,12 @@ impl<
 
         let outgoing_msg = self
             .scp
-            .nominate(
-                self.cur_slot,
-                BTreeSet::from_iter(
-                    self.pending_values
-                        .iter()
-                        .take(MAX_PENDING_VALUES_TO_NOMINATE)
-                        .cloned(),
-                ),
-            )
+            .nominate(BTreeSet::from_iter(
+                self.pending_values
+                    .iter()
+                    .take(MAX_PENDING_VALUES_TO_NOMINATE)
+                    .cloned(),
+            ))
             .expect("nominate failed");
         (self.send_scp_message)(outgoing_msg);
 
