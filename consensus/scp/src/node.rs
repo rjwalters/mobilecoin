@@ -15,9 +15,6 @@ use mc_crypto_digestible::Digestible;
 use sha3::Sha3_256;
 use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
-/// Max number of pending slots to store.
-const MAX_PENDING_SLOTS: usize = 10;
-
 /// Max number of externalized slots to store.
 const MAX_EXTERNALIZED_SLOTS: usize = 10;
 
@@ -32,9 +29,11 @@ pub struct Node<V: Value, ValidationError: Display> {
     /// Local node quorum set.
     pub Q: QuorumSet,
 
-    /// Map of last few slot indexes -> slots.
-    pub pending: LruCache<SlotIndex, Slot<V, ValidationError>>,
+    /// The current slot that this node is attempting to reach consensus on.
+    pub current_slot: Slot<V, ValidationError>,
 
+    // /// Map of last few slot indexes -> slots.
+    // pub pending: LruCache<SlotIndex, Slot<V, ValidationError>>,
     /// Map of last few slot indexes -> externalized slots.
     pub externalized: LruCache<SlotIndex, ExternalizePayload<V>>,
 
@@ -63,12 +62,22 @@ impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
         Q: QuorumSet,
         validity_fn: ValidityFn<V, ValidationError>,
         combine_fn: CombineFn<V>,
+        current_slot_index: SlotIndex,
         logger: Logger,
     ) -> Self {
+        let slot = Slot::new(
+            ID.clone(),
+            Q.clone(),
+            current_slot_index,
+            validity_fn.clone(),
+            combine_fn.clone(),
+            logger.clone(),
+        );
+
         Self {
             ID,
             Q,
-            pending: LruCache::new(MAX_PENDING_SLOTS),
+            current_slot: slot,
             externalized: LruCache::new(MAX_EXTERNALIZED_SLOTS),
             validity_fn,
             combine_fn,
@@ -78,30 +87,31 @@ impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
         }
     }
 
-    /// Get or crate a pending slot.
-    fn get_or_create_pending_slot(
-        &mut self,
-        slot_index: SlotIndex,
-    ) -> &mut Slot<V, ValidationError> {
-        // Create new Slot if necessary.
-        if !self.pending.contains(&slot_index) {
-            let mut slot = Slot::new(
-                self.ID.clone(),
-                self.Q.clone(),
-                slot_index,
-                self.validity_fn.clone(),
-                self.combine_fn.clone(),
-                self.logger.clone(),
-            );
-            slot.base_round_interval = self.scp_timebase;
-            slot.base_ballot_interval = self.scp_timebase;
-            self.pending.put(slot_index, slot);
-        }
+    // /// Get or crate a pending slot.
+    // fn get_or_create_pending_slot(
+    //     &mut self,
+    //     slot_index: SlotIndex,
+    // ) -> &mut Slot<V, ValidationError> {
+    //     // Create new Slot if necessary.
+    //     if !self.pending.contains(&slot_index) {
+    //         let mut slot = Slot::new(
+    //             self.ID.clone(),
+    //             self.Q.clone(),
+    //             slot_index,
+    //             self.validity_fn.clone(),
+    //             self.combine_fn.clone(),
+    //             self.logger.clone(),
+    //         );
+    //         slot.base_round_interval = self.scp_timebase;
+    //         slot.base_ballot_interval = self.scp_timebase;
+    //         self.pending.put(slot_index, slot);
+    //     }
+    //
+    //     // Return slot.
+    //     self.pending.get_mut(&slot_index).unwrap()
+    // }
 
-        // Return slot.
-        self.pending.get_mut(&slot_index).unwrap()
-    }
-
+    // Record the values externalized by the current slot and advance the current slot.
     fn externalize(
         &mut self,
         slot_index: SlotIndex,
@@ -124,8 +134,19 @@ impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
         if externalized_invalid_values {
             return Err("Slot Externalized invalid values.".to_string());
         }
-
         self.externalized.put(slot_index, payload.clone());
+
+        // Advance to the next slot.
+        // TODO: keep a bounded queue of recently externalized slots.
+        self.current_slot = Slot::new(
+            self.ID.clone(),
+            self.Q.clone(),
+            slot_index + 1,
+            self.validity_fn.clone(),
+            self.combine_fn.clone(),
+            self.logger.clone(),
+        );
+
         Ok(())
     }
 }
@@ -174,10 +195,10 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
         self.Q.clone()
     }
 
-    /// Submit a list of values of nomination.
+    /// Submit a list of values for nomination in the current slot.
     fn nominate(
         &mut self,
-        slot_index: SlotIndex,
+        _slot_index: SlotIndex, // TODO: remove this
         values: BTreeSet<V>,
     ) -> Result<Option<Msg<V>>, String> {
         if values.is_empty() {
@@ -198,21 +219,20 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
             return Ok(None);
         }
 
-        let slot = self.get_or_create_pending_slot(slot_index);
-        let outbound = slot.propose_values(&valid_values)?;
-
-        match &outbound {
+        match self.current_slot.propose_values(&valid_values)? {
             None => Ok(None),
             Some(msg) => {
                 if let Topic::Externalize(ext_payload) = &msg.topic {
                     self.externalize(msg.slot_index, ext_payload)?;
                 }
-                Ok(outbound)
+                Ok(Some(msg))
             }
         }
     }
 
     /// Handle incoming message from the network.
+    ///
+    /// Messages for future slots are ignored.
     fn handle(&mut self, msg: &Msg<V>) -> Result<Option<Msg<V>>, String> {
         if msg.sender_id == self.ID {
             log::error!(
@@ -220,6 +240,12 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
                 "node.handle received message from self: {:?}",
                 msg
             );
+            return Ok(None);
+        }
+
+        // Ignore messages for future slots.
+        if msg.slot_index > self.current_slot.get_index() {
+            // TODO: return an error?
             return Ok(None);
         }
 
@@ -237,7 +263,7 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
                         received_externalized_payload
                     );
 
-                    // TODO: return an error.
+                    // TODO: return an error?
                     return Ok(None);
                 }
             }
@@ -255,18 +281,20 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
         // Store message so it doesn't get processed again.
         self.seen_msg_hashes.put(msg_hash, ());
 
-        // Process message using the Slot.
-        let slot = self.get_or_create_pending_slot(msg.slot_index);
-        let outbound = slot.handle(msg)?;
-
-        match &outbound {
-            None => Ok(None),
-            Some(msg) => {
-                if let Topic::Externalize(ext_payload) = &msg.topic {
-                    self.externalize(msg.slot_index, ext_payload)?;
+        if msg.slot_index == self.current_slot.get_index() {
+            // If the message is for the current slot...
+            match self.current_slot.handle(msg)? {
+                None => Ok(None),
+                Some(msg) => {
+                    if let Topic::Externalize(ext_payload) = &msg.topic {
+                        self.externalize(msg.slot_index, ext_payload)?;
+                    }
+                    Ok(Some(msg))
                 }
-                Ok(outbound)
             }
+        } else {
+            // TODO: If the message is for a recent, previous slot...
+            Ok(None)
         }
     }
 
@@ -285,24 +313,20 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
 
     /// Process pending timeouts.
     fn process_timeouts(&mut self) -> Vec<Msg<V>> {
-        let mut msgs = Vec::<Msg<V>>::new();
-
-        for (_, slot) in self.pending.iter_mut() {
-            msgs.extend(slot.process_timeouts());
-        }
-
-        msgs
+        self.current_slot.process_timeouts()
     }
 
     /// Get metrics for a specific slot.
-    fn get_slot_metrics(&mut self, slot_index: SlotIndex) -> Option<SlotMetrics> {
-        self.pending.get(&slot_index).map(|slot| slot.get_metrics())
+    fn get_slot_metrics(&mut self, _slot_index: SlotIndex) -> Option<SlotMetrics> {
+        // TODO: also retrieve metrics for recent previous slots.
+        Some(self.current_slot.get_metrics())
     }
 
     /// Clear the list of pending slots. This is useful if the user of this object realizes they
     /// have fallen behind their peers, and as such they want to abort processing of current slots.
     fn clear_pending_slots(&mut self) {
-        self.pending.clear();
+        // TODO: remove this method?
+        // self.pending.clear();
     }
 }
 
@@ -316,12 +340,15 @@ mod tests {
     #[test_with_logger]
     /// Steps through a sequence of messages that allow a two-node network to reach consensus.
     fn basic_two_node_consensus(logger: Logger) {
+        let slot_index = 1;
+
         // A two-node network, where the only quorum is both nodes.
         let mut node1 = Node::<u32, TransactionValidationError>::new(
             test_node_id(1),
             QuorumSet::new_with_node_ids(1, vec![test_node_id(2)]),
             Arc::new(trivial_validity_fn),
             Arc::new(trivial_combine_fn),
+            slot_index,
             logger.clone(),
         );
         let mut node2 = Node::<u32, TransactionValidationError>::new(
@@ -329,11 +356,11 @@ mod tests {
             QuorumSet::new_with_node_ids(1, vec![test_node_id(1)]),
             Arc::new(trivial_validity_fn),
             Arc::new(trivial_combine_fn),
+            slot_index,
             logger.clone(),
         );
 
         // Client(s) submits some values to node 2.
-        let slot_index = 1;
         let values = vec![1000, 2000];
         let msg = node2
             .nominate(slot_index, BTreeSet::from_iter(values.clone()))

@@ -198,6 +198,11 @@ impl<V: Value, ValidationError: Display> Slot<V, ValidationError> {
         slot
     }
 
+    /// Returns the slot's index.
+    pub fn get_index(&self) -> SlotIndex {
+        self.slot_index
+    }
+
     /// Get some metrics/information about the slot for debugging purposes.
     pub fn get_metrics(&self) -> SlotMetrics {
         SlotMetrics {

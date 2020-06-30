@@ -92,6 +92,7 @@ impl ByzantineLedger {
         opt_scp_debug_dump_dir: Option<PathBuf>,
         logger: Logger,
     ) -> Self {
+        let current_slot_index = ledger.num_blocks().unwrap();
         let (sender, receiver) =
             mc_util_metered_channel::unbounded(&counters::BYZANTINE_LEDGER_MESSAGE_QUEUE_SIZE);
         let tx_manager_validate = tx_manager.clone();
@@ -101,6 +102,7 @@ impl ByzantineLedger {
             quorum_set.clone(),
             Arc::new(move |tx_hash| tx_manager_validate.validate_tx_by_hash(tx_hash)),
             Arc::new(move |tx_hashes| tx_manager_combine.combine_txs_by_hash(tx_hashes)),
+            current_slot_index,
             logger.clone(),
         );
         let wrapped_scp_node: Box<dyn ScpNode<TxHash>> = if let Some(path) = opt_scp_debug_dump_dir
