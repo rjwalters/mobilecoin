@@ -1,0 +1,68 @@
+// Copyright (c) 2018-2020 MobileCoin Inc.
+
+// MUST BE KEPT IN SYNC WITH RUST CODE!
+
+// Messages can be encoded into deeplinks using an efficient symbol representation
+// mob://{encoded protobuf bytes} should be interpreted by apps that implement the
+// mobilecoin sdk to launch an appropriate workflow.
+
+syntax = "proto3";
+import "external.proto";
+
+package deeplink_api;
+
+option java_package = "com.mobilecoin.deeplink_api";
+option java_outer_classname = "MobileCoinDeeplinkAPI";
+
+// Possible deeplink types
+enum MobileCoinDeeplinkType {
+
+    // An unexpected type.
+    Unknown = 0;
+
+    // Launch a workflow for submitting a public address.
+    AddressRequest = 1;
+
+    // Launch a workflow for completing a self payment.
+    SelfPaymentRequest = 2;
+
+    // Launch a workflow for sending a payment.
+    PaymentRequest = 3;
+
+    // Launch a workflow for confirming proof-of-payment.
+    ProofOfPaymentRequest = 4;
+
+    // Launch a workflow for recovering a wallet.
+    WalletRecoveryRequest = 5;
+}
+
+// Structure used in specifying the list of outputs when generating a transaction.
+message MobileCoinDeeplink {
+
+    // This tells the app which workflow is requested
+    MobileCoinDeeplinkType type = 1;
+
+    // A private address, which can contain fog data
+    optional external.AccountKey account_key = 2;
+
+    // A public address, which can contain fog data
+    optional external.PublicAddress public_address = 3;
+
+    // a URL
+    optional string url = 4;
+
+    // A signature
+    optional repeated bytes signature = 5;
+
+    // a list of UTXOS
+    optional repeated external.TxOut tx_out_list = 6;
+
+    // an amount of picoMOB
+    optional uint64 amount = 7;
+
+    // a memo
+    optional string memo = 8;
+
+    // a label
+    optional string label = 9;
+}
