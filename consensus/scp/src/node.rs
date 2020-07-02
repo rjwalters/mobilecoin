@@ -16,7 +16,7 @@ use sha3::Sha3_256;
 use std::{collections::BTreeSet, fmt::Display, time::Duration};
 
 /// Max number of pending slots to store.
-const MAX_PENDING_SLOTS: usize = 10;
+const MAX_PENDING_SLOTS: usize = 1;
 
 /// Max number of externalized slots to store.
 const MAX_EXTERNALIZED_SLOTS: usize = 10;
