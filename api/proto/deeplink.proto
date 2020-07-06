@@ -3,8 +3,13 @@
 // MUST BE KEPT IN SYNC WITH RUST CODE!
 
 // Messages can be encoded into deeplinks using an efficient symbol representation
-// mob://{encoded protobuf bytes} should be interpreted by apps that implement the
-// mobilecoin sdk to launch an appropriate workflow.
+// (i.e. ascii88, base64, base58, etc. with or without extra checksum or error
+// correcting code bytes.)
+
+// mob://{encoded bytes} URI messages should be interpreted by apps that implement
+// the mobilecoin SDK to launch an appropriate work-flow. If the message does not
+// contain the data required to complete the requested action, the SDK would return
+// an error.
 
 syntax = "proto3";
 import "external.proto";
@@ -17,52 +22,49 @@ option java_outer_classname = "MobileCoinDeeplinkAPI";
 // Possible deeplink types
 enum MobileCoinDeeplinkType {
 
-    // An unexpected type.
-    Unknown = 0;
+    // Launch a work-flow for submitting a public address.
+    AddressRequest = 0;
 
-    // Launch a workflow for submitting a public address.
-    AddressRequest = 1;
+    // Launch a work-flow for completing a self payment.
+    SelfPaymentRequest = 1;
 
-    // Launch a workflow for completing a self payment.
-    SelfPaymentRequest = 2;
+    // Launch a work-flow for sending a payment.
+    PaymentRequest = 2;
 
-    // Launch a workflow for sending a payment.
-    PaymentRequest = 3;
+    // Launch a work-flow for confirming proof-of-payment.
+    ProofOfPaymentRequest = 3;
 
-    // Launch a workflow for confirming proof-of-payment.
-    ProofOfPaymentRequest = 4;
-
-    // Launch a workflow for recovering a wallet.
-    WalletRecoveryRequest = 5;
+    // Launch a work-flow for recovering a wallet.
+    WalletRecoveryRequest = 4;
 }
 
 // Structure used in specifying the list of outputs when generating a transaction.
 message MobileCoinDeeplink {
 
-    // This tells the app which workflow is requested
+    // This tells the app which work-flow is requested
     MobileCoinDeeplinkType type = 1;
 
     // A private address, which can contain fog data
-    optional external.AccountKey account_key = 2;
+    external.AccountKey account_key = 2;
 
     // A public address, which can contain fog data
-    optional external.PublicAddress public_address = 3;
+    external.PublicAddress public_address = 3;
 
     // a URL
-    optional string url = 4;
+    string url = 4;
 
     // A signature
-    optional repeated bytes signature = 5;
+    repeated bytes signature = 5;
 
     // a list of UTXOS
-    optional repeated external.TxOut tx_out_list = 6;
+    repeated external.TxOut tx_out_list = 6;
 
     // an amount of picoMOB
-    optional uint64 amount = 7;
+    uint64 amount = 7;
 
     // a memo
-    optional string memo = 8;
+    string memo = 8;
 
     // a label
-    optional string label = 9;
+    string label = 9;
 }
