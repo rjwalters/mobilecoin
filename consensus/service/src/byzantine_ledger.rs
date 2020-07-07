@@ -520,9 +520,6 @@ impl<
             (LedgerSyncState::IsBehind { .. }, false) => {
                 log::info!(self.logger, "sync_service reports we are no longer behind!");
 
-                // Reset scp state.
-                self.scp.reset_slot_index(self.cur_slot);
-
                 // Clear any pending values that might no longer be valid.
                 let tx_manager = self.tx_manager.clone();
                 self.pending_values
@@ -545,6 +542,9 @@ impl<
                 self.ledger_sync_state = LedgerSyncState::InSync;
                 self.cur_slot = self.ledger.num_blocks().unwrap();
                 self.prev_block_id = self.ledger.get_block(self.cur_slot - 1).unwrap().id;
+
+                // Reset scp state.
+                self.scp.reset_slot_index(self.cur_slot);
 
                 // Clear old entries from pending_consensus_msgs
                 let cur_slot = self.cur_slot;
