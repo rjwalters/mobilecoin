@@ -91,11 +91,10 @@ impl<V: Value, ValidationError: Clone + Display> Node<V, ValidationError> {
         slot_index: SlotIndex,
         payload: &ExternalizePayload<V>,
     ) -> Result<(), String> {
-        // Check for invalid values. This should be redundant, but may be helpful during development.
-        let mut externalized_invalid_values = false;
+        // Log an error if any invalid values were externalized.
+        // This is be redundant, but may be helpful during development.
         for value in &payload.C.X {
             if let Err(e) = (self.validity_fn)(value) {
-                externalized_invalid_values = true;
                 log::error!(
                     self.logger,
                     "Slot {} externalized invalid value: {:?}, {}",
@@ -104,9 +103,6 @@ impl<V: Value, ValidationError: Clone + Display> Node<V, ValidationError> {
                     e
                 );
             }
-        }
-        if externalized_invalid_values {
-            return Err("Slot Externalized invalid values.".to_string());
         }
 
         self.externalized_slots.push(self.current_slot.clone());
@@ -248,7 +244,7 @@ impl<V: Value, ValidationError: Clone + Display> ScpNode<V> for Node<V, Validati
         self.seen_msg_hashes.put(msg_hash, ());
 
         if msg.slot_index == self.current_slot.get_index() {
-            // If the message is for the current slot...
+            // The message is for the current slot.
             match self.current_slot.handle(msg)? {
                 None => Ok(None),
                 Some(msg) => {
@@ -259,12 +255,21 @@ impl<V: Value, ValidationError: Clone + Display> ScpNode<V> for Node<V, Validati
                 }
             }
         } else {
-            // TODO: If the message is for a recent, previous slot...
-            Ok(None)
+            if let Some(slot) = self
+                .externalized_slots
+                .iter_mut()
+                .find(|slot| slot.get_index() == msg.slot_index)
+            {
+                // The message is for a previous, externalized slot.
+                return slot.handle(msg);
+            } else {
+                // This node is no longer maintaining a slot for the message.
+                Ok(None)
+            }
         }
     }
 
-    /// Get externalized values (or an empty vector) for a given slot index.
+    /// Get externalized values for a given slot index, if any.
     fn get_externalized_values(&self, slot_index: SlotIndex) -> Option<Vec<V>> {
         if let Some(slot) = self
             .externalized_slots
