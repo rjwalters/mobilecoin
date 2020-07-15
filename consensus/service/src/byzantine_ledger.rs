@@ -15,7 +15,8 @@ use mc_common::{
 use mc_connection::{BlockchainConnection, ConnectionManager};
 use mc_consensus_enclave::ConsensusEnclaveProxy;
 use mc_consensus_scp::{
-    scp_log::LoggingScpNode, slot::Phase, Msg, Node, QuorumSet, ScpNode, SlotIndex,
+    node::MAX_EXTERNALIZED_SLOTS, scp_log::LoggingScpNode, slot::Phase, Msg, Node, QuorumSet,
+    ScpNode, SlotIndex,
 };
 use mc_crypto_keys::Ed25519Pair;
 use mc_ledger_db::Ledger;
@@ -548,8 +549,9 @@ impl<
 
                 // Clear old entries from pending_consensus_msgs
                 let cur_slot = self.cur_slot;
-                self.pending_consensus_msgs
-                    .retain(|&slot_index, _| slot_index >= cur_slot);
+                self.pending_consensus_msgs.retain(|&slot_index, _| {
+                    slot_index + MAX_EXTERNALIZED_SLOTS as u64 >= cur_slot
+                });
             }
         };
 
@@ -599,21 +601,18 @@ impl<
 
                 // SCP Statement
                 ByzantineLedgerTaskMessage::ConsensusMsg(consensus_msg, from_responder_id) => {
-                    // Only look at messages that are not for past slots.
-                    if consensus_msg.scp_msg().slot_index >= self.cur_slot {
-                        // Feed network state. The sync service needs this
-                        // to be able to tell if we fell behind based on the slot values.
-                        // Block ID checking is skipped here, since if we fell behind
-                        // we are not going to have blocks to compare to.
-                        self.network_state.push(consensus_msg.scp_msg().clone());
+                    // Feed network state. The sync service needs this
+                    // to be able to tell if we fell behind based on the slot values.
+                    // Block ID checking is skipped here, since if we fell behind
+                    // we are not going to have blocks to compare to.
+                    self.network_state.push(consensus_msg.scp_msg().clone());
 
-                        // Collect.
-                        let entry = self
-                            .pending_consensus_msgs
-                            .entry(consensus_msg.scp_msg().slot_index)
-                            .or_insert(Vec::new());
-                        entry.push((consensus_msg, from_responder_id));
-                    }
+                    // Collect.
+                    let entry = self
+                        .pending_consensus_msgs
+                        .entry(consensus_msg.scp_msg().slot_index)
+                        .or_insert(Vec::new());
+                    entry.push((consensus_msg, from_responder_id));
                 }
 
                 // Request to stop thread
@@ -710,7 +709,7 @@ impl<
         // See if we have externalized values for the current slot.
 
         match self.scp.get_externalized_values(self.cur_slot) {
-            None => return,
+            None => {}
             Some(ext_vals) => {
                 // Update pending value processing time metrics.
                 for value in ext_vals.iter() {
