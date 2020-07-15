@@ -22,7 +22,7 @@ const MAX_EXTERNALIZED_SLOTS: usize = 10;
 const LAST_SEEN_HISTORY_SIZE: usize = 1000;
 
 /// A node participates in federated voting.
-pub struct Node<V: Value, ValidationError: Display> {
+pub struct Node<V: Value, ValidationError: Clone + Display> {
     /// Local node ID.
     pub ID: NodeID,
 
@@ -32,8 +32,8 @@ pub struct Node<V: Value, ValidationError: Display> {
     /// The current slot that this node is attempting to reach consensus on.
     pub current_slot: Slot<V, ValidationError>,
 
-    /// Map of last few slot indexes -> externalized slots.
-    pub externalized: LruCache<SlotIndex, ExternalizePayload<V>>,
+    /// Previous, externalized slots, ordered by increasing slot index.
+    pub externalized_slots: Vec<Slot<V, ValidationError>>,
 
     /// Application-specific validation of value.
     validity_fn: ValidityFn<V, ValidationError>,
@@ -53,7 +53,7 @@ pub struct Node<V: Value, ValidationError: Display> {
     pub scp_timebase: Duration,
 }
 
-impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
+impl<V: Value, ValidationError: Clone + Display> Node<V, ValidationError> {
     /// Creates a new Node.
     pub fn new(
         ID: NodeID,
@@ -76,7 +76,7 @@ impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
             ID,
             Q,
             current_slot: slot,
-            externalized: LruCache::new(MAX_EXTERNALIZED_SLOTS),
+            externalized_slots: Vec::new(),
             validity_fn,
             combine_fn,
             seen_msg_hashes: LruCache::new(LAST_SEEN_HISTORY_SIZE),
@@ -108,10 +108,13 @@ impl<V: Value, ValidationError: Display> Node<V, ValidationError> {
         if externalized_invalid_values {
             return Err("Slot Externalized invalid values.".to_string());
         }
-        self.externalized.put(slot_index, payload.clone());
+
+        self.externalized_slots.push(self.current_slot.clone());
+        while self.externalized_slots.len() > MAX_EXTERNALIZED_SLOTS {
+            self.externalized_slots.remove(0);
+        }
 
         // Advance to the next slot.
-        // TODO: keep a bounded queue of recently externalized slots.
         self.current_slot = Slot::new(
             self.ID.clone(),
             self.Q.clone(),
@@ -140,10 +143,7 @@ pub trait ScpNode<V: Value>: Send {
     fn handle(&mut self, msg: &Msg<V>) -> Result<Option<Msg<V>>, String>;
 
     /// Get externalized values (or an empty vector) for a given slot index.
-    fn get_externalized_values(&self, slot_index: SlotIndex) -> Vec<V>;
-
-    /// Check if we have externalized values for a given slot index.
-    fn has_externalized_values(&self, slot_index: SlotIndex) -> bool;
+    fn get_externalized_values(&self, slot_index: SlotIndex) -> Option<Vec<V>>;
 
     /// Process pending timeouts.
     fn process_timeouts(&mut self) -> Vec<Msg<V>>;
@@ -158,7 +158,7 @@ pub trait ScpNode<V: Value>: Send {
     fn reset_slot_index(&mut self, slot_index: SlotIndex);
 }
 
-impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError> {
+impl<V: Value, ValidationError: Clone + Display> ScpNode<V> for Node<V, ValidationError> {
     fn node_id(&self) -> NodeID {
         self.ID.clone()
     }
@@ -217,25 +217,23 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
             return Ok(None);
         }
 
-        // Log an error if another node Externalizes different values.
-        if let Topic::Externalize(received_externalized_payload) = &msg.topic {
-            if let Some(our_externalized_payload) = self.externalized.get(&msg.slot_index) {
-                if our_externalized_payload.C.X != received_externalized_payload.C.X {
-                    // Another node has externalized a different value for this slot. This could be
-                    // a problem with consensus, or a Byzantine node.
-                    log::error!(
-                        self.logger,
-                        "Node {:?} externalized different values. Ours:{:#?} Theirs:{:#?}",
-                        msg.sender_id,
-                        our_externalized_payload,
-                        received_externalized_payload
-                    );
-
-                    // TODO: return an error?
-                    return Ok(None);
-                }
-            }
-        }
+        // // Log an error if another node Externalizes different values.
+        // if let Topic::Externalize(received_externalized_payload) = &msg.topic {
+        //     if let Some(our_values) = self.get_externalized_values(msg.slot_index) {
+        //         if our_values != received_externalized_payload.C.X {
+        //             // Another node has externalized a different value for this slot.
+        //             // This could be consensus problem, or a message from a Byzantine node.
+        //             log::error!(
+        //                 self.logger,
+        //                 "Node {:?} externalized different values. Ours:{:#?} Theirs:{:#?}",
+        //                 msg.sender_id,
+        //                 our_values,
+        //                 received_externalized_payload.C.X
+        //             );
+        //             return Ok(None);
+        //         }
+        //     }
+        // }
 
         // Calculate message hash.
         let msg_hash = msg.digest_with::<Sha3_256>().into();
@@ -267,16 +265,24 @@ impl<V: Value, ValidationError: Display> ScpNode<V> for Node<V, ValidationError>
     }
 
     /// Get externalized values (or an empty vector) for a given slot index.
-    fn get_externalized_values(&self, slot_index: SlotIndex) -> Vec<V> {
-        match self.externalized.peek(&slot_index) {
-            None => Vec::new(),
-            Some(payload) => payload.C.X.clone(),
+    fn get_externalized_values(&self, slot_index: SlotIndex) -> Option<Vec<V>> {
+        if let Some(slot) = self
+            .externalized_slots
+            .iter()
+            .find(|slot| slot.get_index() == slot_index)
+        {
+            if let Topic::Externalize(payload) = slot
+                .get_last_message_sent()
+                .expect("Previous slots must have a message")
+                .topic
+            {
+                return Some(payload.C.X.clone());
+            } else {
+                panic!("Previous slot has not externalized?");
+            }
+        } else {
+            return None;
         }
-    }
-
-    /// Check if we have externalized values for a given slot index.
-    fn has_externalized_values(&self, slot_index: SlotIndex) -> bool {
-        self.externalized.contains(&slot_index)
     }
 
     /// Process pending timeouts.
