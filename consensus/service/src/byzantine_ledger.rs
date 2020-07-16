@@ -15,7 +15,8 @@ use mc_common::{
 use mc_connection::{BlockchainConnection, ConnectionManager};
 use mc_consensus_enclave::ConsensusEnclaveProxy;
 use mc_consensus_scp::{
-    scp_log::LoggingScpNode, slot::Phase, Msg, Node, QuorumSet, ScpNode, SlotIndex,
+    node::MAX_EXTERNALIZED_SLOTS, scp_log::LoggingScpNode, slot::Phase, Msg, Node, QuorumSet,
+    ScpNode, SlotIndex,
 };
 use mc_crypto_keys::Ed25519Pair;
 use mc_ledger_db::Ledger;
@@ -92,6 +93,7 @@ impl ByzantineLedger {
         opt_scp_debug_dump_dir: Option<PathBuf>,
         logger: Logger,
     ) -> Self {
+        let current_slot_index = ledger.num_blocks().unwrap();
         let (sender, receiver) =
             mc_util_metered_channel::unbounded(&counters::BYZANTINE_LEDGER_MESSAGE_QUEUE_SIZE);
         let tx_manager_validate = tx_manager.clone();
@@ -101,6 +103,7 @@ impl ByzantineLedger {
             quorum_set.clone(),
             Arc::new(move |tx_hash| tx_manager_validate.validate_tx_by_hash(tx_hash)),
             Arc::new(move |tx_hashes| tx_manager_combine.combine_txs_by_hash(tx_hashes)),
+            current_slot_index,
             logger.clone(),
         );
         let wrapped_scp_node: Box<dyn ScpNode<TxHash>> = if let Some(path) = opt_scp_debug_dump_dir
@@ -518,9 +521,6 @@ impl<
             (LedgerSyncState::IsBehind { .. }, false) => {
                 log::info!(self.logger, "sync_service reports we are no longer behind!");
 
-                // Reset scp state.
-                self.scp.clear_pending_slots();
-
                 // Clear any pending values that might no longer be valid.
                 let tx_manager = self.tx_manager.clone();
                 self.pending_values
@@ -544,10 +544,14 @@ impl<
                 self.cur_slot = self.ledger.num_blocks().unwrap();
                 self.prev_block_id = self.ledger.get_block(self.cur_slot - 1).unwrap().id;
 
+                // Reset scp state.
+                self.scp.reset_slot_index(self.cur_slot);
+
                 // Clear old entries from pending_consensus_msgs
                 let cur_slot = self.cur_slot;
-                self.pending_consensus_msgs
-                    .retain(|&slot_index, _| slot_index >= cur_slot);
+                self.pending_consensus_msgs.retain(|&slot_index, _| {
+                    slot_index + MAX_EXTERNALIZED_SLOTS as u64 >= cur_slot
+                });
             }
         };
 
@@ -597,21 +601,18 @@ impl<
 
                 // SCP Statement
                 ByzantineLedgerTaskMessage::ConsensusMsg(consensus_msg, from_responder_id) => {
-                    // Only look at messages that are not for past slots.
-                    if consensus_msg.scp_msg().slot_index >= self.cur_slot {
-                        // Feed network state. The sync service needs this
-                        // to be able to tell if we fell behind based on the slot values.
-                        // Block ID checking is skipped here, since if we fell behind
-                        // we are not going to have blocks to compare to.
-                        self.network_state.push(consensus_msg.scp_msg().clone());
+                    // Feed network state. The sync service needs this
+                    // to be able to tell if we fell behind based on the slot values.
+                    // Block ID checking is skipped here, since if we fell behind
+                    // we are not going to have blocks to compare to.
+                    self.network_state.push(consensus_msg.scp_msg().clone());
 
-                        // Collect.
-                        let entry = self
-                            .pending_consensus_msgs
-                            .entry(consensus_msg.scp_msg().slot_index)
-                            .or_insert(Vec::new());
-                        entry.push((consensus_msg, from_responder_id));
-                    }
+                    // Collect.
+                    let entry = self
+                        .pending_consensus_msgs
+                        .entry(consensus_msg.scp_msg().slot_index)
+                        .or_insert(Vec::new());
+                    entry.push((consensus_msg, from_responder_id));
                 }
 
                 // Request to stop thread
@@ -632,15 +633,12 @@ impl<
 
         let outgoing_msg = self
             .scp
-            .nominate(
-                self.cur_slot,
-                BTreeSet::from_iter(
-                    self.pending_values
-                        .iter()
-                        .take(MAX_PENDING_VALUES_TO_NOMINATE)
-                        .cloned(),
-                ),
-            )
+            .nominate(BTreeSet::from_iter(
+                self.pending_values
+                    .iter()
+                    .take(MAX_PENDING_VALUES_TO_NOMINATE)
+                    .cloned(),
+            ))
             .expect("nominate failed");
         (self.send_scp_message)(outgoing_msg);
 
@@ -709,113 +707,115 @@ impl<
 
     fn attempt_complete_cur_slot(&mut self) {
         // See if we have externalized values for the current slot.
-        let ext_vals = self.scp.get_externalized_values(self.cur_slot);
-        if ext_vals.is_empty() {
-            return;
-        }
 
-        // Update pending value processing time metrics.
-        for ext_val in ext_vals.iter() {
-            if let Some(Some(timestamp)) = self.pending_values_map.get(ext_val) {
-                let duration = Instant::now().saturating_duration_since(*timestamp);
-                counters::PENDING_VALUE_PROCESSING_TIME.observe(duration.as_secs_f64());
+        match self.scp.get_externalized_values(self.cur_slot) {
+            None => {}
+            Some(ext_vals) => {
+                // Update pending value processing time metrics.
+                for value in ext_vals.iter() {
+                    if let Some(Some(timestamp)) = self.pending_values_map.get(value) {
+                        let duration = Instant::now().saturating_duration_since(*timestamp);
+                        counters::PENDING_VALUE_PROCESSING_TIME.observe(duration.as_secs_f64());
+                    }
+                }
+
+                // Invariant: pending_values only contains valid values that were not externalized.
+                self.pending_values
+                    .retain(|tx_hash| !ext_vals.contains(tx_hash));
+
+                log::info!(
+                    self.logger,
+                    "Slot {} ended with {} externalized values and {} pending values.",
+                    self.cur_slot,
+                    ext_vals.len(),
+                    self.pending_values.len(),
+                );
+
+                // Write to ledger.
+                {
+                    let (block, block_contents, signature) = self
+                        .tx_manager
+                        .tx_hashes_to_block(&ext_vals)
+                        .unwrap_or_else(|e| {
+                            panic!("Failed to build block from {:?}: {:?}", ext_vals, e)
+                        });
+
+                    log::info!(
+                        self.logger,
+                        "Appending block {} to ledger (sig: {}, tx_hashes: {:?}).",
+                        block.index,
+                        signature,
+                        ext_vals,
+                    );
+
+                    {
+                        let _timer = counters::APPEND_BLOCK_TIME.start_timer();
+                        self.ledger
+                            .append_block(&block, &block_contents, Some(&signature))
+                            .expect("failed appending block");
+                    }
+
+                    counters::BLOCKS_WRITTEN_COUNT.inc();
+                    counters::BLOCKS_IN_LEDGER.set(self.ledger.num_blocks().unwrap() as i64);
+                    counters::TXO_WRITTEN_COUNT.inc_by(block_contents.outputs.len() as i64);
+                    counters::TXO_IN_LEDGER.set(self.ledger.num_txos().unwrap() as i64);
+                    counters::TX_EXTERNALIZED_COUNT.inc_by(ext_vals.len() as i64);
+                }
+
+                // Sanity check + update current slot.
+                let cur_slot = self.ledger.num_blocks().expect("num blocks failed") as SlotIndex;
+
+                assert_eq!(cur_slot, self.cur_slot + 1);
+
+                self.cur_slot = cur_slot;
+                self.prev_block_id = self.ledger.get_block(cur_slot - 1).unwrap().id;
+
+                // Evacuate transactions that are no longer valid based on their tombstone block.
+                let purged_hashes = self.tx_manager.evacuate_expired(cur_slot);
+
+                counters::TX_CACHE_NUM_ENTRIES.set(self.tx_manager.num_entries() as i64);
+
+                // Drop pending values that are no longer considered valid.
+                let tx_manager = self.tx_manager.clone();
+                self.pending_values.retain(|tx_hash| {
+                    !purged_hashes.contains(tx_hash)
+                        && tx_manager.validate_tx_by_hash(tx_hash).is_ok()
+                });
+
+                // Re-construct the BTreeMap with the remaining values, using the old timestamps.
+                let mut new_pending_values_map = BTreeMap::new();
+                for val in self.pending_values.iter() {
+                    new_pending_values_map.insert(*val, *self.pending_values_map.get(val).unwrap());
+                }
+                self.pending_values_map = new_pending_values_map;
+
+                log::info!(
+                    self.logger,
+                    "number of pending values post cleanup: {} ({} expired)",
+                    self.pending_values.len(),
+                    purged_hashes.len(),
+                );
+
+                // Prev slot metrics.
+                counters::PREV_SLOT_NUMBER.set((cur_slot - 1) as i64);
+                counters::PREV_SLOT_ENDED_AT.set(chrono::Utc::now().timestamp_millis());
+                counters::PREV_SLOT_NUM_EXT_VALS.set(ext_vals.len() as i64);
+                counters::PREV_NUM_PENDING_VALUES.set(self.pending_values.len() as i64);
+
+                if !self.pending_values.is_empty() {
+                    // We have pending values to nominate on the next ick.
+                    self.need_nominate = true;
+                }
+
+                // If we think we're behind, reset us back to InSync since we made progress. If we're still
+                // behind this will result in restarting the grace period timer, which is the desired
+                // behavior. This protects us from a node that is slightly behind it's peers but has queued
+                // up all the SCP statements it needs to make progress and catch up.
+                if self.ledger_sync_state != LedgerSyncState::InSync {
+                    log::info!(self.logger, "sync_service reported we're behind, but we just externalized a slot. resetting to InSync");
+                    self.ledger_sync_state = LedgerSyncState::InSync;
+                }
             }
-        }
-
-        // Maintain the invariant that pending_values only contains valid values that were not externalized.
-        self.pending_values
-            .retain(|tx_hash| !ext_vals.contains(tx_hash));
-
-        log::info!(
-            self.logger,
-            "Slot {} ended with {} externalized values and {} pending values.",
-            self.cur_slot,
-            ext_vals.len(),
-            self.pending_values.len(),
-        );
-
-        // Write to ledger.
-        {
-            let (block, block_contents, signature) = self
-                .tx_manager
-                .tx_hashes_to_block(&ext_vals)
-                .unwrap_or_else(|e| panic!("Failed to build block from {:?}: {:?}", ext_vals, e));
-
-            log::info!(
-                self.logger,
-                "Appending block {} to ledger (sig: {}, tx_hashes: {:?}).",
-                block.index,
-                signature,
-                ext_vals,
-            );
-
-            {
-                let _timer = counters::APPEND_BLOCK_TIME.start_timer();
-                self.ledger
-                    .append_block(&block, &block_contents, Some(&signature))
-                    .expect("failed appending block");
-            }
-
-            counters::BLOCKS_WRITTEN_COUNT.inc();
-            counters::BLOCKS_IN_LEDGER.set(self.ledger.num_blocks().unwrap() as i64);
-            counters::TXO_WRITTEN_COUNT.inc_by(block_contents.outputs.len() as i64);
-            counters::TXO_IN_LEDGER.set(self.ledger.num_txos().unwrap() as i64);
-            counters::TX_EXTERNALIZED_COUNT.inc_by(ext_vals.len() as i64);
-        }
-
-        // Sanity check + update current slot.
-        let cur_slot = self.ledger.num_blocks().expect("num blocks failed") as SlotIndex;
-
-        assert_eq!(cur_slot, self.cur_slot + 1);
-
-        self.cur_slot = cur_slot;
-        self.prev_block_id = self.ledger.get_block(cur_slot - 1).unwrap().id;
-
-        // Evacuate transactions that are no longer valid based on their
-        // tombstone block.
-        let purged_hashes = self.tx_manager.evacuate_expired(cur_slot);
-
-        counters::TX_CACHE_NUM_ENTRIES.set(self.tx_manager.num_entries() as i64);
-
-        // Drop pending values that are no longer considered valid.
-        let tx_manager = self.tx_manager.clone();
-        self.pending_values.retain(|tx_hash| {
-            !purged_hashes.contains(tx_hash) && tx_manager.validate_tx_by_hash(tx_hash).is_ok()
-        });
-
-        // Re-construct the BTreeMap with the remaining values, using the old timestamps.
-        let mut new_pending_values_map = BTreeMap::new();
-        for val in self.pending_values.iter() {
-            new_pending_values_map.insert(*val, *self.pending_values_map.get(val).unwrap());
-        }
-        self.pending_values_map = new_pending_values_map;
-
-        log::info!(
-            self.logger,
-            "number of pending values post cleanup: {} ({} expired)",
-            self.pending_values.len(),
-            purged_hashes.len(),
-        );
-
-        // Prev slot metrics.
-        counters::PREV_SLOT_NUMBER.set((cur_slot - 1) as i64);
-        counters::PREV_SLOT_ENDED_AT.set(chrono::Utc::now().timestamp_millis());
-        counters::PREV_SLOT_NUM_EXT_VALS.set(ext_vals.len() as i64);
-        counters::PREV_NUM_PENDING_VALUES.set(self.pending_values.len() as i64);
-
-        // If we have any pending values, we'd like to issue a nominate statement on the next
-        // tick.
-        if !self.pending_values.is_empty() {
-            self.need_nominate = true;
-        }
-
-        // If we think we're behind, reset us back to InSync since we made progress. If we're still
-        // behind this will result in restarting the grace period timer, which is the desired
-        // behavior. This protects us from a node that is slightly behind it's peers but has queued
-        // up all the SCP statements it needs to make progress and catch up.
-        if self.ledger_sync_state != LedgerSyncState::InSync {
-            log::info!(self.logger, "sync_service reported we're behind, but we just externalized a slot. resetting to InSync");
-            self.ledger_sync_state = LedgerSyncState::InSync;
         }
     }
 
@@ -912,42 +912,20 @@ impl<
     }
 
     fn update_cur_metrics(&mut self) {
-        let slot_metrics = self.scp.get_slot_metrics(self.cur_slot);
+        let slot_metrics = self.scp.get_slot_metrics();
         counters::CUR_NUM_PENDING_VALUES.set(self.pending_values.len() as i64);
         counters::CUR_SLOT_NUM.set(self.cur_slot as i64);
-        counters::CUR_SLOT_PHASE.set(match slot_metrics.as_ref().map(|m| m.phase) {
-            None => 0,
-            Some(Phase::NominatePrepare) => 2,
-            Some(Phase::Prepare) => 3,
-            Some(Phase::Commit) => 4,
-            Some(Phase::Externalize) => 5,
+        counters::CUR_SLOT_PHASE.set(match slot_metrics.phase {
+            Phase::NominatePrepare => 2,
+            Phase::Prepare => 3,
+            Phase::Commit => 4,
+            Phase::Externalize => 5,
         });
-        counters::CUR_SLOT_NUM_VOTED_NOMINATED.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.num_voted_nominated as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_NUM_ACCEPTED_NOMINATED.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.num_accepted_nominated as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_NUM_CONFIRMED_NOMINATED.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.num_confirmed_nominated as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_NOMINATION_ROUND.set(
-            slot_metrics
-                .as_ref()
-                .map(|m| m.cur_nomination_round as i64)
-                .unwrap_or(0),
-        );
-        counters::CUR_SLOT_BALLOT_COUNTER
-            .set(slot_metrics.as_ref().map(|m| m.bN as i64).unwrap_or(0));
+        counters::CUR_SLOT_NUM_VOTED_NOMINATED.set(slot_metrics.num_voted_nominated as i64);
+        counters::CUR_SLOT_NUM_ACCEPTED_NOMINATED.set(slot_metrics.num_accepted_nominated as i64);
+        counters::CUR_SLOT_NUM_CONFIRMED_NOMINATED.set(slot_metrics.num_confirmed_nominated as i64);
+        counters::CUR_SLOT_NOMINATION_ROUND.set(slot_metrics.cur_nomination_round as i64);
+        counters::CUR_SLOT_BALLOT_COUNTER.set(slot_metrics.bN as i64);
     }
 }
 

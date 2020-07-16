@@ -44,6 +44,7 @@ pub enum Phase {
 }
 
 /// The SCP slot.
+#[derive(Clone)]
 pub struct Slot<V: Value, ValidationError: Display> {
     /// Current slot number.
     slot_index: SlotIndex,
@@ -196,6 +197,16 @@ impl<V: Value, ValidationError: Display> Slot<V, ValidationError> {
         slot.max_priority_peers.insert(max_priority_peer);
 
         slot
+    }
+
+    /// Returns the slot's index.
+    pub fn get_index(&self) -> SlotIndex {
+        self.slot_index
+    }
+
+    /// Last message sent by this node, if any.
+    pub fn get_last_message_sent(&self) -> Option<Msg<V>> {
+        self.last_sent_msg.clone()
     }
 
     /// Get some metrics/information about the slot for debugging purposes.

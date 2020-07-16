@@ -38,7 +38,7 @@ pub struct LoggingScpNode<V: Value, N: ScpNode<V>> {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum LoggedMsg<V: Value> {
     /// Specifies the settings for this node.
-    NodeSettings(NodeID, QuorumSet),
+    NodeSettings(NodeID, QuorumSet, SlotIndex),
 
     /// An incoming message to this node.
     IncomingMsg(Msg<V>),
@@ -104,8 +104,11 @@ impl<V: Value, N: ScpNode<V>> LoggingScpNode<V, N> {
             self.msg_count = 0;
             self.slot_start_time = Instant::now();
 
-            let n: NodeID = self.node.node_id();
-            self.write(LoggedMsg::NodeSettings(n, self.node.quorum_set()))?;
+            self.write(LoggedMsg::NodeSettings(
+                self.node.node_id(),
+                self.node.quorum_set(),
+                self.highest_slot_index,
+            ))?;
         }
 
         // If message if for a previous slot, ignore it.
@@ -143,15 +146,11 @@ impl<V: Value, N: ScpNode<V>> ScpNode<V> for LoggingScpNode<V, N> {
         self.node.quorum_set()
     }
 
-    fn nominate(
-        &mut self,
-        slot_index: SlotIndex,
-        values: BTreeSet<V>,
-    ) -> Result<Option<Msg<V>>, String> {
+    fn nominate(&mut self, values: BTreeSet<V>) -> Result<Option<Msg<V>>, String> {
+        let slot_index = self.node.current_slot_index();
         self.write(LoggedMsg::Nominate(slot_index, values.clone()))?;
 
-        let out_msg = self.node.nominate(slot_index, values)?;
-
+        let out_msg = self.node.nominate(values)?;
         if let Some(ref msg) = out_msg {
             self.write(LoggedMsg::OutgoingMsg(msg.clone()))?;
         }
@@ -171,12 +170,8 @@ impl<V: Value, N: ScpNode<V>> ScpNode<V> for LoggingScpNode<V, N> {
         Ok(out_msg)
     }
 
-    fn get_externalized_values(&self, slot_index: SlotIndex) -> Vec<V> {
+    fn get_externalized_values(&self, slot_index: SlotIndex) -> Option<Vec<V>> {
         self.node.get_externalized_values(slot_index)
-    }
-
-    fn has_externalized_values(&self, slot_index: SlotIndex) -> bool {
-        self.node.has_externalized_values(slot_index)
     }
 
     fn process_timeouts(&mut self) -> Vec<Msg<V>> {
@@ -190,12 +185,16 @@ impl<V: Value, N: ScpNode<V>> ScpNode<V> for LoggingScpNode<V, N> {
         out_msgs
     }
 
-    fn get_slot_metrics(&mut self, slot_index: SlotIndex) -> Option<SlotMetrics> {
-        self.node.get_slot_metrics(slot_index)
+    fn current_slot_index(&self) -> u64 {
+        self.node.current_slot_index()
     }
 
-    fn clear_pending_slots(&mut self) {
-        self.node.clear_pending_slots()
+    fn get_slot_metrics(&mut self) -> SlotMetrics {
+        self.node.get_slot_metrics()
+    }
+
+    fn reset_slot_index(&mut self, slot_index: SlotIndex) {
+        self.node.reset_slot_index(slot_index)
     }
 }
 
