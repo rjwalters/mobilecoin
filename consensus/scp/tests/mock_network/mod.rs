@@ -362,7 +362,7 @@ impl SCPNode {
                                 .iter()
                                 .take(max_pending_values_to_nominate)
                                 .cloned()
-                                .collect()
+                                .collect();
 
                             // Avoid unnecessary proposed values - 5-10x speed up
                             for v in slot_nominated_values.iter() {
