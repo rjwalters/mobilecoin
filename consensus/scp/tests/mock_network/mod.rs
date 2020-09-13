@@ -373,8 +373,8 @@ impl SCPNode {
                                     .propose_values(values_to_nominate)
                                     .expect("propose_values() failed");
 
-                                for v in values_to_nominate.drain() {
-                                    slot_nominated_values.insert(v);
+                                for v in values_to_nominate.iter() {
+                                    slot_nominated_values.insert(v.clone());
                                 }
 
                                 if let Some(outgoing_msg) = outgoing_msg {
