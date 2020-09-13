@@ -360,22 +360,23 @@ impl SCPNode {
                             values.sort();
                             values.truncate(max_pending_values_to_nominate);
 
-                            // mc_common::HashSet does not support extend because of our enclave-safe HasherBuilder
-                            let mut values_to_nominate: HashSet<String> =
+                            let mut values_to_nominate: BTreeSet<String> =
                                 values.iter().cloned().collect();
 
+                            // this is a small optimization
                             for v in slot_nominated_values.iter() {
                                 values_to_nominate.remove(v);
                             }
 
                             if !values_to_nominate.is_empty() {
-                                for v in values_to_nominate.iter() {
-                                    slot_nominated_values.insert(v.clone());
-                                }
 
                                 let outgoing_msg: Option<Msg<String>> = thread_local_node
-                                    .propose_values(BTreeSet::from_iter(values_to_nominate))
+                                    .propose_values(values_to_nominate)
                                     .expect("propose_values() failed");
+
+                                for v in values_to_nominate.iter() {
+                                    slot_nominated_values.insert(v);
+                                }
 
                                 if let Some(outgoing_msg) = outgoing_msg {
                                     (broadcast_msg_fn)(logger.clone(), outgoing_msg);
