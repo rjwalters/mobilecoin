@@ -359,7 +359,8 @@ impl SCPNode {
                             values.sort();
                             values.truncate(max_pending_values_to_nominate);
 
-                            let mut values_to_nominate: BTreeSet<String> =
+                            // With optimization add mut
+                            let values_to_nominate: BTreeSet<String> =
                                 values.iter().cloned().collect();
 
                             // Don't make slot process unnecessary proposed values
