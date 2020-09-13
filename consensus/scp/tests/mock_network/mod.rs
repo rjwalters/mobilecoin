@@ -15,7 +15,6 @@ use mc_consensus_scp::{
 };
 use std::{
     collections::{BTreeSet, HashMap, HashSet},
-    iter::FromIterator,
     sync::{Arc, Mutex},
     thread,
     thread::JoinHandle,
@@ -374,7 +373,7 @@ impl SCPNode {
                                     .propose_values(values_to_nominate)
                                     .expect("propose_values() failed");
 
-                                for v in values_to_nominate.iter() {
+                                for v in values_to_nominate.drain() {
                                     slot_nominated_values.insert(v);
                                 }
 
