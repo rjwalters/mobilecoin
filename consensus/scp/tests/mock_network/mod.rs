@@ -355,24 +355,21 @@ impl SCPNode {
                         if (slot_nominated_values.len() < max_pending_values_to_nominate)
                             && !pending_values.is_empty()
                         {
-                            let mut values: Vec<String> = pending_values.iter().cloned().collect();
-                            values.sort();
-                            values.truncate(max_pending_values_to_nominate);
-
-                            // With optimization add mut
-                            let values_to_nominate: BTreeSet<String> =
-                                values.iter().cloned().collect();
+                            let values_to_nominate: BTreeSet<String> = pending_values
+                                .iter()
+                                .take(max_pending_values_to_nominate)
+                                .cloned()
+                                .collect();
 
                             // Don't make slot process unnecessary proposed values
-                            // for v in slot_nominated_values.iter() {
-                            //     values_to_nominate.remove(v);
-                            // }
+                            //for v in slot_nominated_values.iter() {
+                            //    values_to_nominate.remove(v);
+                            //}
 
                             if !values_to_nominate.is_empty() {
-
-                                // for v in values_to_nominate.iter() {
-                                //   slot_nominated_values.insert(v.clone());
-                                // }
+                                for v in values_to_nominate.iter() {
+                                   slot_nominated_values.insert(v.clone());
+                                }
 
                                 let outgoing_msg: Option<Msg<String>> = thread_local_node
                                     .propose_values(values_to_nominate)
