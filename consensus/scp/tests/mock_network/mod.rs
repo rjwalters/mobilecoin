@@ -363,14 +363,14 @@ impl SCPNode {
                                 values.iter().cloned().collect();
 
                             // Don't make slot process unnecessary proposed values
-                            //for v in slot_nominated_values.iter() {
-                            //    values_to_nominate.remove(v);
-                            //}
+                            // for v in slot_nominated_values.iter() {
+                            //     values_to_nominate.remove(v);
+                            // }
 
                             if !values_to_nominate.is_empty() {
 
-                                ///for v in values_to_nominate.iter() {
-                                //    slot_nominated_values.insert(v.clone());
+                                // for v in values_to_nominate.iter() {
+                                //   slot_nominated_values.insert(v.clone());
                                 // }
 
                                 let outgoing_msg: Option<Msg<String>> = thread_local_node
