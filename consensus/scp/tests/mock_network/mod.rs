@@ -369,13 +369,13 @@ impl SCPNode {
 
                             if !values_to_nominate.is_empty() {
 
-                                let outgoing_msg: Option<Msg<String>> = thread_local_node
-                                    .propose_values(values_to_nominate)
-                                    .expect("propose_values() failed");
-
                                 for v in values_to_nominate.iter() {
                                     slot_nominated_values.insert(v.clone());
                                 }
+
+                                let outgoing_msg: Option<Msg<String>> = thread_local_node
+                                    .propose_values(values_to_nominate)
+                                    .expect("propose_values() failed");
 
                                 if let Some(outgoing_msg) = outgoing_msg {
                                     (broadcast_msg_fn)(logger.clone(), outgoing_msg);
