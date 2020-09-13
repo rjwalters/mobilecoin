@@ -371,7 +371,7 @@ impl SCPNode {
 
                             if !values_to_nominate.is_empty() {
                                 for v in values_to_nominate.iter() {
-                                   slot_nominated_values.insert(v.clone());
+                                    slot_nominated_values.insert(v.clone());
                                 }
 
                                 let outgoing_msg: Option<Msg<String>> = thread_local_node
