@@ -355,20 +355,21 @@ impl SCPNode {
                         {
 
                             // compare to consensus/service/src/byzantine_ledger/worker.rs::nominate_pending_values
+                            
+                            // let values_to_propose: BTreeSet<String> = pending_values
+                            //     .iter()
+                            //     .take(max_slot_proposed_values)
+                            //     .cloned()
+                            //     .collect::<BTreeSet<String>>();
+
                             let values_to_propose: BTreeSet<String> = pending_values
+                                .iter()
+                                .cloned()
+                                .collect::<BTreeSet<String>>() // sorts values
                                 .iter()
                                 .take(max_slot_proposed_values)
                                 .cloned()
-                                .collect::<BTreeSet<String>>();
-
-                            //let values_to_propose: BTreeSet<String> = pending_values
-                            //    .iter()
-                            //    .cloned()
-                            //    .collect::<BTreeSet<String>>() // sorts values
-                            //    .iter()
-                            //    .take(max_slot_proposed_values)
-                            //    .cloned()
-                            //    .collect();
+                                .collect();
 
                             if !values_to_propose.is_empty() {
                                  slot_proposed_values += values_to_propose.len();
