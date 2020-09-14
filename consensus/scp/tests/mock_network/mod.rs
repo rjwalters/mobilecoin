@@ -392,7 +392,7 @@ impl SCPNode {
                             thread_local_node.get_externalized_values(current_slot as SlotIndex)
                         {
                             // Continue proposing only those values that were not externalized.
-                            pending_values.retain(|&v| new_block.iter().all(|&x| v != x ));
+                            pending_values.retain(|v| new_block.iter().all(|x| v != x ));
 
                             let new_block_length = new_block.len();
 
