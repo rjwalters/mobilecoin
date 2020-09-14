@@ -391,10 +391,13 @@ impl SCPNode {
                         if let Some(new_block) =
                             thread_local_node.get_externalized_values(current_slot as SlotIndex)
                         {
-                            // Continue proposing only those values that were not externalized.
-                            pending_values.retain(|v| new_block.iter().all(|x| v != x ));
+                            let externalized_values: HashSet<String> = new_block
+                                .iter()
+                                .cloned()
+                                .collect();
 
-                            let new_block_length = new_block.len();
+                            // Continue proposing only values that were not externalized.
+                            pending_values.retain(|v| !externalized_values.contains(v));
 
                             let mut locked_shared_data = thread_shared_data
                                 .lock()
@@ -411,7 +414,7 @@ impl SCPNode {
                                 "(  ledger ) node {} slot {} : {} new, {} total, {} pending",
                                 node_config.name,
                                 current_slot as SlotIndex,
-                                new_block_length,
+                                externalized_values.len(),
                                 ledger_size,
                                 pending_values.len(),
                             );
