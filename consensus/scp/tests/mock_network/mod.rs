@@ -309,7 +309,6 @@ impl SCPNode {
         let thread_shared_data = Arc::clone(&scp_node.shared_data);
         let max_slot_proposed_values: usize = test_options.max_slot_proposed_values;
 
-        let mut slot_proposed_values: usize = 0;
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
 
@@ -318,7 +317,7 @@ impl SCPNode {
                 .name(node_config.id.to_string())
                 .spawn(move || {
                     // All values that have not yet been externalized.
-                    let mut pending_values: HashSet<String> = HashSet::default();
+                    let mut pending_values: Vec<String> = Vec::default();
 
                     'main_loop: loop {
                         // Compare to byzantine_ledger::tick()
@@ -330,7 +329,7 @@ impl SCPNode {
                             Ok(scp_msg) => match scp_msg {
                                 // Collect values submitted from the client
                                 SCPNodeTaskMessage::Value(value) => {
-                                    pending_values.insert(value.clone());
+                                    pending_values.push(value.clone());
                                 }
 
                                 // Process an incoming SCP message
@@ -350,19 +349,12 @@ impl SCPNode {
                         };
 
                         // Nominate pending values submitted to our node
-                        if (slot_proposed_values < max_slot_proposed_values)
-                            && !pending_values.is_empty()
-                        {
+                        if !pending_values.is_empty() {
                             let values_to_propose: BTreeSet<String> = pending_values
-                                .iter()
-                                .cloned()
-                                .collect::<BTreeSet<String>>() // sorts values
                                 .iter()
                                 .take(max_slot_proposed_values)
                                 .cloned()
                                 .collect();
-
-                            slot_proposed_values = values_to_propose.len();
 
                             let outgoing_msg: Option<Msg<String>> = thread_local_node
                                 .propose_values(values_to_propose)
@@ -399,10 +391,8 @@ impl SCPNode {
                         if let Some(new_block) =
                             thread_local_node.get_externalized_values(current_slot as SlotIndex)
                         {
-                            // Stop proposing/nominating any values that we have externalized.
-                            for v in &new_block {
-                                pending_values.remove(v);
-                            }
+                            // Continue proposing only those values that were not externalized.
+                            pending_values.retain(|&v| new_block.iter().all(|&x| v != x ));
 
                             let new_block_length = new_block.len();
 
@@ -427,7 +417,6 @@ impl SCPNode {
                             );
 
                             current_slot += 1;
-                            slot_proposed_values = 0;
                         }
                     }
                     log::info!(
