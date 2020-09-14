@@ -359,7 +359,7 @@ impl SCPNode {
                                 .iter()
                                 .take(max_slot_proposed_values)
                                 .cloned()
-                                .collect::<BTreeSet<String>>()
+                                .collect::<BTreeSet<String>>();
 
                             //let values_to_propose: BTreeSet<String> = pending_values
                             //    .iter()
