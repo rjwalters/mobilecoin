@@ -362,6 +362,8 @@ impl SCPNode {
                                 .cloned()
                                 .collect();
 
+                            slot_proposed_values = values_to_propose.len();
+
                             let outgoing_msg: Option<Msg<String>> = thread_local_node
                                 .propose_values(values_to_propose)
                                 .expect("propose_values() failed");
@@ -370,8 +372,6 @@ impl SCPNode {
                                 (broadcast_msg_fn)(logger.clone(), outgoing_msg);
                                 total_broadcasts += 1;
                             }
-
-                            slot_proposed_values = values_to_propose.len();
                         }
 
                         // Process incoming consensus message, which might be for a future slot
