@@ -309,6 +309,7 @@ impl SCPNode {
         let thread_shared_data = Arc::clone(&scp_node.shared_data);
         let max_slot_proposed_values: usize = test_options.max_slot_proposed_values;
 
+        let mut slot_proposed_values: usize = 0;
         let mut current_slot: usize = 0;
         let mut total_broadcasts: u32 = 0;
 
@@ -349,7 +350,9 @@ impl SCPNode {
                         };
 
                         // Nominate pending values submitted to our node
-                        if !pending_values.is_empty() {
+                        if (slot_proposed_values < max_slot_proposed_values)
+                            && !pending_values.is_empty()
+                        {
                             let values_to_propose: BTreeSet<String> = pending_values
                                 .iter()
                                 .cloned()
@@ -367,6 +370,8 @@ impl SCPNode {
                                 (broadcast_msg_fn)(logger.clone(), outgoing_msg);
                                 total_broadcasts += 1;
                             }
+
+                            slot_proposed_values = values_to_propose.len();
                         }
 
                         // Process incoming consensus message, which might be for a future slot
@@ -422,6 +427,7 @@ impl SCPNode {
                             );
 
                             current_slot += 1;
+                            slot_proposed_values = 0;
                         }
                     }
                     log::info!(
