@@ -43,7 +43,7 @@ pub struct TestOptions {
     /// is it better to set this quite high.
     pub submissions_per_sec: u64,
 
-    /// We nominate up to this many values from our pending set per slot.
+    /// We propose up to this many values from our pending set per slot.
     pub max_slot_proposed_values: usize,
 
     /// The total allowed testing time before forcing a panic
@@ -307,8 +307,6 @@ impl SCPNode {
         thread_local_node.scp_timebase = test_options.scp_timebase;
 
         let thread_shared_data = Arc::clone(&scp_node.shared_data);
-
-        // Compare to byzantine_ledger::nominate_pending_values()
         let max_slot_proposed_values: usize = test_options.max_slot_proposed_values;
 
         let mut slot_proposed_values: usize = 0;
@@ -324,7 +322,7 @@ impl SCPNode {
 
                     'main_loop: loop {
                         // Compare to byzantine_ledger::tick()
-                        // nominate happens before consensus msg is handled
+                        // there pending values are proposed before incoming msg is handled
                         let mut incoming_msg_option: Option<Arc<Msg<String>>> = None;
 
                         // Collect one incoming message using a non-blocking channel read
@@ -355,14 +353,22 @@ impl SCPNode {
                         if (slot_proposed_values < max_slot_proposed_values)
                             && !pending_values.is_empty()
                         {
+
+                            // compare to consensus/service/src/byzantine_ledger/worker.rs::nominate_pending_values
                             let values_to_propose: BTreeSet<String> = pending_values
-                                .iter()
-                                .cloned()
-                                .collect::<BTreeSet<String>>() // sorts values
                                 .iter()
                                 .take(max_slot_proposed_values)
                                 .cloned()
-                                .collect();
+                                .collect::<BTreeSet<String>>()
+
+                            //let values_to_propose: BTreeSet<String> = pending_values
+                            //    .iter()
+                            //    .cloned()
+                            //    .collect::<BTreeSet<String>>() // sorts values
+                            //    .iter()
+                            //    .take(max_slot_proposed_values)
+                            //    .cloned()
+                            //    .collect();
 
                             if !values_to_propose.is_empty() {
                                  slot_proposed_values += values_to_propose.len();
