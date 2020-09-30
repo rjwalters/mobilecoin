@@ -186,21 +186,21 @@ impl From<&mc_mobilecoind_api::GetUnspentTxOutListResponse> for JsonUtxosRespons
 }
 
 #[derive(Deserialize)]
-pub struct JsonGetRequestCodeRequest {
+pub struct JsonCreateRequestCodeRequest {
     pub receiver: JsonPublicAddress,
-    pub value: Option<u64>,
+    pub value: Option<String>,
     pub memo: Option<String>,
 }
 
 #[derive(Serialize, Default)]
-pub struct JsonGetRequestCodeResponse {
-    pub b58_code: String,
+pub struct JsonCreateRequestCodeResponse {
+    pub b58_request_code: String,
 }
 
-impl From<&mc_mobilecoind_api::GetRequestCodeResponse> for JsonGetRequestCodeResponse {
-    fn from(src: &mc_mobilecoind_api::GetRequestCodeResponse) -> Self {
+impl From<&mc_mobilecoind_api::CreateRequestCodeResponse> for JsonCreateRequestCodeResponse {
+    fn from(src: &mc_mobilecoind_api::CreateRequestCodeResponse) -> Self {
         Self {
-            b58_code: String::from(src.get_b58_code()),
+            b58_request_code: String::from(src.get_b58_code()),
         }
     }
 }
@@ -231,6 +231,43 @@ impl From<&PublicAddress> for JsonPublicAddress {
             fog_report_url: String::from(src.get_fog_report_url()),
             fog_report_id: String::from(src.get_fog_report_id()),
             fog_authority_fingerprint_sig: hex::encode(&src.get_fog_authority_fingerprint_sig()),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Default)]
+pub struct JsonPublicAddressResponse {
+    /// Hex encoded compressed ristretto bytes
+    pub view_public_key: String,
+
+    /// Hex encoded compressed ristretto bytes
+    pub spend_public_key: String,
+
+    /// Fog Report Server Url
+    pub fog_report_url: String,
+
+    /// Hex encoded signature bytes
+    pub fog_authority_fingerprint_sig: String,
+
+    /// String label for fog reports
+    pub fog_report_id: String,
+
+    /// b58-encoded public address
+    pub b58_address_code: String,
+}
+
+impl From<&mc_mobilecoind_api::GetPublicAddressResponse> for JsonPublicAddressResponse {
+    fn from(src: &mc_mobilecoind_api::GetPublicAddressResponse) -> Self {
+        let public_address = src.get_public_address();
+        Self {
+            view_public_key: hex::encode(&public_address.get_view_public_key().get_data()),
+            spend_public_key: hex::encode(&public_address.get_spend_public_key().get_data()),
+            fog_report_url: String::from(public_address.get_fog_report_url()),
+            fog_report_id: String::from(public_address.get_fog_report_id()),
+            fog_authority_fingerprint_sig: hex::encode(
+                &public_address.get_fog_authority_fingerprint_sig(),
+            ),
+            b58_address_code: src.get_b58_code().to_string(),
         }
     }
 }
@@ -268,14 +305,14 @@ impl TryFrom<&JsonPublicAddress> for PublicAddress {
 }
 
 #[derive(Deserialize, Serialize, Default)]
-pub struct JsonReadRequestCodeResponse {
+pub struct JsonParseRequestCodeResponse {
     pub receiver: JsonPublicAddress,
     pub value: String,
     pub memo: String,
 }
 
-impl From<&mc_mobilecoind_api::ReadRequestCodeResponse> for JsonReadRequestCodeResponse {
-    fn from(src: &mc_mobilecoind_api::ReadRequestCodeResponse) -> Self {
+impl From<&mc_mobilecoind_api::ParseRequestCodeResponse> for JsonParseRequestCodeResponse {
+    fn from(src: &mc_mobilecoind_api::ParseRequestCodeResponse) -> Self {
         Self {
             receiver: JsonPublicAddress::from(src.get_receiver()),
             value: src.get_value().to_string(),
@@ -285,17 +322,17 @@ impl From<&mc_mobilecoind_api::ReadRequestCodeResponse> for JsonReadRequestCodeR
 }
 
 #[derive(Deserialize)]
-pub struct JsonGetAddressCodeRequest {
+pub struct JsonCreateAddressCodeRequest {
     pub receiver: JsonPublicAddress,
 }
 
 #[derive(Serialize, Default)]
-pub struct JsonGetAddressCodeResponse {
+pub struct JsonCreateAddressCodeResponse {
     pub b58_code: String,
 }
 
-impl From<&mc_mobilecoind_api::GetAddressCodeResponse> for JsonGetAddressCodeResponse {
-    fn from(src: &mc_mobilecoind_api::GetAddressCodeResponse) -> Self {
+impl From<&mc_mobilecoind_api::CreateAddressCodeResponse> for JsonCreateAddressCodeResponse {
+    fn from(src: &mc_mobilecoind_api::CreateAddressCodeResponse) -> Self {
         Self {
             b58_code: String::from(src.get_b58_code()),
         }
@@ -303,12 +340,12 @@ impl From<&mc_mobilecoind_api::GetAddressCodeResponse> for JsonGetAddressCodeRes
 }
 
 #[derive(Deserialize, Serialize, Default)]
-pub struct JsonReadAddressCodeResponse {
+pub struct JsonParseAddressCodeResponse {
     pub receiver: JsonPublicAddress,
 }
 
-impl From<&mc_mobilecoind_api::ReadAddressCodeResponse> for JsonReadAddressCodeResponse {
-    fn from(src: &mc_mobilecoind_api::ReadAddressCodeResponse) -> Self {
+impl From<&mc_mobilecoind_api::ParseAddressCodeResponse> for JsonParseAddressCodeResponse {
+    fn from(src: &mc_mobilecoind_api::ParseAddressCodeResponse) -> Self {
         Self {
             receiver: JsonPublicAddress::from(src.get_receiver()),
         }
@@ -357,7 +394,7 @@ impl From<&mc_mobilecoind_api::ReceiverTxReceipt> for JsonReceiverTxReceipt {
 
 #[derive(Deserialize, Serialize)]
 pub struct JsonSendPaymentRequest {
-    pub request_code: JsonReadRequestCodeResponse,
+    pub request_data: JsonParseRequestCodeResponse,
     pub max_input_utxo_value: Option<String>, // String due to u64 limitation.
 }
 
@@ -382,8 +419,8 @@ impl From<&mc_mobilecoind_api::SendPaymentResponse> for JsonSendPaymentResponse 
 
 #[derive(Deserialize, Serialize)]
 pub struct JsonPayAddressCodeRequest {
-    pub receiver_b58_code: String,
-    pub amount: String,
+    pub receiver_b58_address_code: String,
+    pub value: String,
     pub max_input_utxo_value: Option<String>,
 }
 
@@ -901,7 +938,7 @@ impl TryFrom<&JsonTxProposal> for mc_mobilecoind_api::TxProposal {
 #[derive(Deserialize, Serialize)]
 pub struct JsonCreateTxProposalRequest {
     pub input_list: Vec<JsonUnspentTxOut>,
-    pub transfer: JsonReadRequestCodeResponse,
+    pub transfer: JsonParseRequestCodeResponse,
 }
 
 #[derive(Deserialize, Serialize)]
@@ -1073,6 +1110,21 @@ impl From<&mc_mobilecoind_api::GetProcessedBlockResponse> for JsonProcessedBlock
                 .iter()
                 .map(JsonProcessedTxOut::from)
                 .collect(),
+        }
+    }
+}
+
+#[derive(Serialize, Default)]
+pub struct JsonBlockIndexByTxPubKeyResponse {
+    pub block_index: String,
+}
+
+impl From<&mc_mobilecoind_api::GetBlockIndexByTxPubKeyResponse>
+    for JsonBlockIndexByTxPubKeyResponse
+{
+    fn from(src: &mc_mobilecoind_api::GetBlockIndexByTxPubKeyResponse) -> Self {
+        Self {
+            block_index: src.block.to_string(),
         }
     }
 }
