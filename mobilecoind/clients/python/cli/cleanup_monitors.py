@@ -81,4 +81,5 @@ if __name__ == '__main__':
         if confirm_remove_monitor():
             print("    Removing monitor_id {}\n".format(monitor_id.hex()[0:10]+"..."))
             mobilecoind.remove_monitor(monitor_id)
-
+        else:
+            print()
