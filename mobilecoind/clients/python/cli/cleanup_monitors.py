@@ -26,8 +26,24 @@ if __name__ == '__main__':
     # Connect to mobilecoind
     mobilecoind = mobilecoin.Client("localhost:4444", ssl=False)
 
+    monitor_list = mobilecoind.get_monitor_list()
+    # show a summary of all monitors
+
+    print("\n    There are {} active monitors.\n".format(len(monitor_list)))
+    print("    {:<18}{:<18}{:<18}".format("Monitor ID", "Subaddress Range", "Next Block"))
+    for monitor_id in monitor_list:
+        # check monitor status
+        status = mobilecoind.get_monitor_status(monitor_id)
+        first_subaddress: int = status.first_subaddress if hasattr(status, 'first_subaddress') else 0
+        num_subaddresses: int = status.num_subaddresses if hasattr(status, 'num_subaddresses')  else 0
+        last_subaddress:int = first_subaddress + num_subaddresses - 1
+        next_block: int  = status.next_block if hasattr(status, 'next_block')  else 0
+        print("    {:<18}{:<18}{:<18}".format(monitor_id.hex(), "{} to {}".format(first_subaddress, last_subaddress), next_block))
+
+    print("\n    Choose any monitors to be removed.\n")
+
     # iterate over all active monitors
-    for monitor_id in mobilecoind.get_monitor_list():
+    for monitor_id in monitor_list:
         # check ledger status
         remote_count, local_count, is_behind = mobilecoind.get_network_status()
 
