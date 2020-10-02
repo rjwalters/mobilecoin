@@ -34,17 +34,13 @@ if __name__ == '__main__':
         # check monitor status
         status = mobilecoind.get_monitor_status(monitor_id)
 
-        print(status)
-        print(status.account_key)
-        print(status["account_key"])
-
         # get fields (protobuf omits fields with empty or zero values)
-        account_key = status.account_key if "account_key" in status else None
-        first_subaddress: int = status.first_subaddress if first_subaddress in status else 0
-        num_subaddresses: int = status.num_subaddresses if num_subaddresses in status else 0
-        first_block: int = status.first_block if first_block in status else 0
-        next_block: int  = status.next_block if next_block in status else 0
-        name: str = status.name if name in status else ""
+        account_key = status.account_key if hasattr(status, 'account_key') else None
+        first_subaddress: int = status.first_subaddress if hasattr(status, 'first_subaddress') else 0
+        num_subaddresses: int = status.num_subaddresses if hasattr(status, 'num_subaddresses')  else 0
+        first_block: int = status.first_block if hasattr(status, 'first_block')  else 0
+        next_block: int  = status.next_block if hasattr(status, 'next_block')  else 0
+        name: str = status.name if hasattr(status, 'name')  else ""
 
         print("\n")
         print("    {:<18}{}".format("Monitor ID:", monitor_id.hex()))
