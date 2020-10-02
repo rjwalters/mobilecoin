@@ -51,7 +51,7 @@ if __name__ == '__main__':
         print("    {:<18}{}".format("Subaddress Count:", num_subaddresses))
         print("    {:<18}{}".format("First Subaddress:", first_subaddress))
         print("    Address Code and Balance by Subaddress Index:")
-        for subaddress_index in range(first_subaddress, first_subaddress + max(10, num_subaddresses):
+        for subaddress_index in range(first_subaddress, first_subaddress + max(10, num_subaddresses)):
             address_code = mobilecoind.get_public_address(monitor_id, subaddress_index=subaddress_index).b58_code
             balance_picoMOB = mobilecoind.get_balance(monitor_id, subaddress_index=subaddress_index)
             print("      {:<16}{:<20}{:<20}".format(address_code[0:8]+"...", balance_picoMOB, mobilecoin.display_as_MOB(balance_picoMOB)))
