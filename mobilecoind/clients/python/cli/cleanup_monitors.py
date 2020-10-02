@@ -13,14 +13,14 @@ def confirm_remove_monitor():
     valid = {"yes": True, "y": True, "ye": True,
              "no": False, "n": False}
     while True:
-        sys.stdout.write("Remove this monitor? [y/N]")
+        sys.stdout.write("  Remove this monitor? [y/N]")
         choice = input().lower()
         if choice == '':
             return valid["no"]
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write("Please respond with 'yes' or 'no'.\n")
+            sys.stdout.write("  Please respond with 'yes' or 'no'.\n")
 
 if __name__ == '__main__':
     # Connect to mobilecoind
@@ -28,19 +28,25 @@ if __name__ == '__main__':
 
     monitor_list = mobilecoind.get_monitor_list()
     # show a summary of all monitors
+    if len(monitor_list) == 0:
+        print("\n    There no active monitors.\n")
+        sys.exit(0)
+    elif len(monitor_list) == 1:
+        print("\n    There is 1 active monitor.\n")
+    else
+        print("\n    There are {} active monitors.\n".format(len(monitor_list)))
 
-    print("\n    There are {} active monitors.\n".format(len(monitor_list)))
-    print("    {:<18}{:<18}{:<18}".format("Monitor ID", "Subaddress Range", "Next Block"))
-    for monitor_id in monitor_list:
-        # check monitor status
-        status = mobilecoind.get_monitor_status(monitor_id)
-        first_subaddress: int = status.first_subaddress if hasattr(status, 'first_subaddress') else 0
-        num_subaddresses: int = status.num_subaddresses if hasattr(status, 'num_subaddresses')  else 0
-        last_subaddress:int = first_subaddress + num_subaddresses - 1
-        next_block: int  = status.next_block if hasattr(status, 'next_block')  else 0
-        print("    {:<18}{:<18}{:<18}".format(monitor_id.hex(), "{} to {}".format(first_subaddress, last_subaddress), next_block))
+        print("    {:<18}{:<18}{:<18}".format("Monitor ID", "Subaddress Range", "Next Block"))
+        for monitor_id in monitor_list:
+            # check monitor status
+            status = mobilecoind.get_monitor_status(monitor_id)
+            first_subaddress: int = status.first_subaddress if hasattr(status, 'first_subaddress') else 0
+            num_subaddresses: int = status.num_subaddresses if hasattr(status, 'num_subaddresses')  else 0
+            last_subaddress:int = first_subaddress + num_subaddresses - 1
+            next_block: int  = status.next_block if hasattr(status, 'next_block')  else 0
+            print("    {:<18}{:<18}{:<18}".format(monitor_id.hex(), "{} to {}".format(first_subaddress, last_subaddress), next_block))
 
-    print("\n    Choose any monitors to be removed.\n")
+    print("\n    Choose monitors to be remove...\n")
 
     # iterate over all active monitors
     for monitor_id in monitor_list:
