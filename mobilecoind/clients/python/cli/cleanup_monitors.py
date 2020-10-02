@@ -33,7 +33,7 @@ if __name__ == '__main__':
         sys.exit(0)
     elif len(monitor_list) == 1:
         print("\n    There is 1 active monitor.\n")
-    else
+    else:
         print("\n    There are {} active monitors.\n".format(len(monitor_list)))
 
         print("    {:<18}{:<18}{:<18}".format("Monitor ID", "Subaddress Range", "Next Block"))
