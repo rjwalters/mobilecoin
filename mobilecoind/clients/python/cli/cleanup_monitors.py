@@ -45,8 +45,7 @@ if __name__ == '__main__':
             last_subaddress:int = first_subaddress + num_subaddresses - 1
             next_block: int  = status.next_block if hasattr(status, 'next_block')  else 0
             print("    {:<18}{:<18}{:<18}".format(monitor_id.hex(), "{} to {}".format(first_subaddress, last_subaddress), next_block))
-
-    print("\n    Choose monitors to be remove...\n")
+            print("\n    Choose monitors to be remove...")
 
     # iterate over all active monitors
     for monitor_id in monitor_list:
