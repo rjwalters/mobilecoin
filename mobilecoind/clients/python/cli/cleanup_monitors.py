@@ -35,7 +35,6 @@ if __name__ == '__main__':
         print("\n    There is 1 active monitor.\n")
     else:
         print("\n    There are {} active monitors.\n".format(len(monitor_list)))
-
         print("    {:<18}{:<18}{:<18}".format("Monitor ID", "Subaddress Range", "Next Block"))
         for monitor_id in monitor_list:
             # check monitor status
@@ -44,8 +43,8 @@ if __name__ == '__main__':
             num_subaddresses: int = status.num_subaddresses if hasattr(status, 'num_subaddresses')  else 0
             last_subaddress:int = first_subaddress + num_subaddresses - 1
             next_block: int  = status.next_block if hasattr(status, 'next_block')  else 0
-            print("    {:<18}{:<18}{:<18}".format(monitor_id.hex(), "{} to {}".format(first_subaddress, last_subaddress), next_block))
-            print("\n    Choose monitors to be remove...")
+            print("    {:<18}{:<18}{:<18}".format(monitor_id.hex()[0:10]+"...", "{} to {}".format(first_subaddress, last_subaddress), next_block))
+        print("\n    Choose monitors to be remove...")
 
     # iterate over all active monitors
     for monitor_id in monitor_list:
@@ -64,7 +63,7 @@ if __name__ == '__main__':
         name: str = status.name if hasattr(status, 'name')  else ""
 
         print("\n")
-        print("    {:<18}{}".format("Monitor ID:", monitor_id.hex()))
+        print("    {:<18}{}".format("Monitor ID:", monitor_id.hex()[0:10]+"..."))
         if name:
             print("    {:<18}{}".format("Monitor Name:", name))
         print("    {:<18}{}".format("First Block:", first_block))
@@ -80,6 +79,6 @@ if __name__ == '__main__':
         print("\n")
 
         if confirm_remove_monitor():
-            print("    Removing monitor_id {}\n".format(monitor_id.hex()))
+            print("    Removing monitor_id {}\n".format(monitor_id.hex()[0:10]+"..."))
             mobilecoind.remove_monitor(monitor_id)
 
