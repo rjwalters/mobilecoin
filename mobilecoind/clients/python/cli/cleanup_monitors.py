@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # iterate over all active monitors
     for monitor_id in mobilecoind.get_monitor_list():
         # check ledger status
-        remote_count, local_count, is_behind = self.get_network_status()
+        remote_count, local_count, is_behind = mobilecoind.get_network_status()
 
         # check monitor status
         status = mobilecoind.get_monitor_status(monitor_id)
