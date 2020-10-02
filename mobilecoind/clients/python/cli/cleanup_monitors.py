@@ -13,14 +13,14 @@ def confirm_remove_monitor():
     valid = {"yes": True, "y": True, "ye": True,
              "no": False, "n": False}
     while True:
-        sys.stdout.write("  Remove this monitor? [y/N]")
+        sys.stdout.write("    Remove this monitor? [y/N]")
         choice = input().lower()
         if choice == '':
             return valid["no"]
         elif choice in valid:
             return valid[choice]
         else:
-            sys.stdout.write("  Please respond with 'yes' or 'no'.\n")
+            sys.stdout.write("    Please respond with 'yes' or 'no'.\n")
 
 if __name__ == '__main__':
     # Connect to mobilecoind
@@ -72,14 +72,15 @@ if __name__ == '__main__':
         print("    {:<18}{} (ledger has {}/{} blocks)".format("Next Block:", status.next_block, local_count, remote_count))
         print("    {:<18}{}".format("Subaddress Count:", num_subaddresses))
         print("    {:<18}{}".format("First Subaddress:", first_subaddress))
-        print("    {:<16}{:<20}".format("Address Code", "Balance"))
+        print()
+        print("    {:<18}{:<20}".format("Address Code", "Balance (pMOB)", "Balance"))
         for subaddress_index in range(first_subaddress, first_subaddress + min(10, num_subaddresses)):
             address_code = mobilecoind.get_public_address(monitor_id, subaddress_index=subaddress_index).b58_code
             balance_picoMOB = mobilecoind.get_balance(monitor_id, subaddress_index=subaddress_index)
-            print("    {:<16}{:<20}{:<20}".format(address_code[0:8]+"...", balance_picoMOB, mobilecoin.display_as_MOB(balance_picoMOB)))
+            print("    {:<18}{:<20}{:<20}".format(address_code[0:10]+"...", balance_picoMOB, mobilecoin.display_as_MOB(balance_picoMOB)))
         print("\n")
 
         if confirm_remove_monitor():
-            print("Removing monitor_id {}\n".format(monitor_id.hex()))
+            print("    Removing monitor_id {}\n".format(monitor_id.hex()))
             mobilecoind.remove_monitor(monitor_id)
 
