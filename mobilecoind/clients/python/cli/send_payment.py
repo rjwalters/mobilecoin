@@ -85,7 +85,7 @@ if __name__ == '__main__':
         # if the recipient was specified with a master key; we may want to remove it...
         mobilecoind.remove_monitor(recipient_monitor_id)
         try:
-            mobilecoind.get_monitor_status(recipient_monitor_id))
+            mobilecoind.get_monitor_status(recipient_monitor_id)
         except Exception as e:
             print(e)
             sys.exit(0)
