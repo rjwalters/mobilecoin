@@ -87,8 +87,11 @@ if __name__ == '__main__':
         try:
             mobilecoind.get_monitor_status(recipient_monitor_id)
         except Exception as e:
-            if hasattr(e, "details") and e.details.find("MonitorIdNotFound") > 0:
-                print("Monitor not found")
+            if hasattr(e, "details"):
+                error_details = e.details()
+                print(error_details)
+                if error_details.find("MonitorIdNotFound") > 0:
+                    print("Monitor not found")
             sys.exit(0)
 
     else:
