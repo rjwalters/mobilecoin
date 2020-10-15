@@ -453,7 +453,7 @@ impl TryFrom<&JsonOutlay> for mc_mobilecoind_api::Outlay {
         );
         outlay.set_public_address(
             PublicAddress::try_from(&src.receiver)
-                .map_err(|err| format!("Could not convert public_address: {}", err))?,
+                .map_err(|err| format!("Could not convert receiver: {}", err))?,
         );
 
         Ok(outlay)
