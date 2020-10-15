@@ -702,7 +702,7 @@ impl<T: BlockchainConnection + UserTxConnection + 'static> ServiceApi<T> {
         &mut self,
         request: mc_mobilecoind_api::GenerateTxFromTxOutListRequest,
     ) -> Result<mc_mobilecoind_api::GenerateTxFromTxOutListResponse, RpcStatus> {
-        let proto_account_key = request.account_key.as_ref().ok_or_else(|| {
+        let proto_account_key = request.sender_account_key.as_ref().ok_or_else(|| {
             RpcStatus::new(
                 RpcStatusCode::INVALID_ARGUMENT,
                 Some("account_key".to_string()),
@@ -722,7 +722,7 @@ impl<T: BlockchainConnection + UserTxConnection + 'static> ServiceApi<T> {
             })
             .collect::<Result<Vec<UnspentTxOut>, RpcStatus>>()?;
 
-        let public_address = PublicAddress::try_from(request.get_public_address())
+        let public_address = PublicAddress::try_from(request.get_receiver_public_address())
             .map_err(|err| rpc_internal_error("PublicAddress.try_from", err, &self.logger))?;
 
         let tx_proposal = self
@@ -1428,7 +1428,7 @@ impl<T: BlockchainConnection + UserTxConnection + 'static> ServiceApi<T> {
         request: mc_mobilecoind_api::PayAddressCodeRequest,
     ) -> Result<mc_mobilecoind_api::SendPaymentResponse, RpcStatus> {
         // Sanity check.
-        if request.get_amount() == 0 {
+        if request.get_value() == 0 {
             return Err(RpcStatus::new(
                 RpcStatusCode::INVALID_ARGUMENT,
                 Some("amount".to_string()),
@@ -1437,7 +1437,7 @@ impl<T: BlockchainConnection + UserTxConnection + 'static> ServiceApi<T> {
 
         // Try and decode the address code.
         let mut parse_address_code_request = mc_mobilecoind_api::ParseAddressCodeRequest::new();
-        parse_address_code_request.set_b58_code(request.get_b58_code().to_owned());
+        parse_address_code_request.set_b58_code(request.get_receiver_b58_code().to_owned());
         let parse_address_code_response =
             self.parse_address_code_impl(parse_address_code_request)?;
 
