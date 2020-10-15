@@ -1156,15 +1156,12 @@ impl<T: BlockchainConnection + UserTxConnection + 'static> ServiceApi<T> {
                                     &self.logger,
                                 )
                             })?;
-                        let tx_public_key =
-                            RistrettoPublic::try_from(request.get_receipt().get_tx_out_public_key())
-                                .map_err(|err| {
-                                    rpc_internal_error(
-                                        "RistrettoPublic.try_from",
-                                        err,
-                                        &self.logger,
-                                    )
-                                })?;
+                        let tx_public_key = RistrettoPublic::try_from(
+                            request.get_receipt().get_tx_out_public_key()
+                        )
+                        .map_err(|err| {
+                            rpc_internal_error("RistrettoPublic.try_from", err, &self.logger)
+                        })?;
                         let view_private_key = monitor_data.account_key.view_private_key();
 
                         if request.get_receipt().get_confirmation_number().len() != 32 {

@@ -518,7 +518,8 @@ fn check_receiver_transfer_status(
 ) -> Result<Json<JsonStatusResponse>, String> {
     let mut receiver_receipt = mc_mobilecoind_api::ReceiverTxReceipt::new();
     let mut tx_out_public_key = CompressedRistretto::new();
-    tx_out_public_key.set_data(hex::decode(&receipt.tx_public_key).map_err(|err| format!("{}", err))?);
+    tx_out_public_key
+        .set_data(hex::decode(&receipt.tx_public_key).map_err(|err| format!("{}", err))?);
     receiver_receipt.set_tx_out_public_key(tx_out_public_key);
     receiver_receipt
         .set_tx_out_hash(hex::decode(&receipt.tx_out_hash).map_err(|err| format!("{}", err))?);
