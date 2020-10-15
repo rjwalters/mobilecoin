@@ -2710,7 +2710,7 @@ mod test {
             );
 
             let mut request = mc_mobilecoind_api::GetBlockIndexByTxPubKeyRequest::new();
-            request.set_tx_public_key(tx_out_pub_key);
+            request.set_tx_out_public_key(tx_out_pub_key);
 
             let response = client.get_block_index_by_tx_pub_key(&request).unwrap();
             assert_eq!(block_index, response.block_index);
@@ -3736,7 +3736,7 @@ mod test {
         {
             let mut request = mc_mobilecoind_api::CreateTransferCodeRequest::new();
             request.set_entropy(vec![3u8; 8]); // key is wrong size
-            request.set_tx_public_key((&tx_public_key).into());
+            request.set_tx_out_public_key((&tx_public_key).into());
             request.set_memo("memo".to_owned());
             assert!(client.create_transfer_code(&request).is_err());
 
@@ -3751,7 +3751,7 @@ mod test {
             // Encode
             let mut request = mc_mobilecoind_api::CreateTransferCodeRequest::new();
             request.set_entropy(root_entropy.to_vec());
-            request.set_tx_public_key((&tx_public_key).into());
+            request.set_tx_out_public_key((&tx_public_key).into());
             request.set_memo("test memo".to_owned());
 
             let response = client.create_transfer_code(&request).unwrap();
