@@ -2966,7 +2966,7 @@ mod test {
         // Build a request to transfer the first two TxOuts
         let tx_utxos = utxos[0..2].to_vec();
         let mut request = mc_mobilecoind_api::GenerateTxFromTxOutListRequest::new();
-        request.set_account_key((&sender).into());
+        request.set_sender_account_key((&sender).into());
         request.set_input_list(RepeatedField::from_vec(
             tx_utxos
                 .iter()
@@ -2974,7 +2974,7 @@ mod test {
                 .collect(),
         ));
         let receiver = AccountKey::random(&mut rng);
-        request.set_public_address((&receiver.default_subaddress()).into());
+        request.set_receiver_public_address((&receiver.default_subaddress()).into());
         request.set_fee(MINIMUM_FEE);
 
         let response = client.generate_tx_from_tx_out_list(&request).unwrap();
@@ -3593,8 +3593,8 @@ mod test {
         let mut request = mc_mobilecoind_api::PayAddressCodeRequest::new();
         request.set_sender_monitor_id(monitor_id.to_vec());
         request.set_sender_subaddress_index(0);
-        request.set_b58_code(b58_code);
-        request.set_amount(1234);
+        request.set_receiver_b58_code(b58_code);
+        request.set_value(1234);
 
         let response = client.pay_address_code(&request).unwrap();
 
