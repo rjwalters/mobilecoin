@@ -1443,7 +1443,7 @@ impl<T: BlockchainConnection + UserTxConnection + 'static> ServiceApi<T> {
 
         // Forward to SendPayment
         let mut outlay = mc_mobilecoind_api::Outlay::new();
-        outlay.set_value(request.get_amount());
+        outlay.set_value(request.get_value());
         outlay.set_public_address(parse_address_code_response.get_public_address().clone());
 
         let mut send_payment_request = mc_mobilecoind_api::SendPaymentRequest::new();

@@ -390,8 +390,8 @@ fn pay_address_code(
     let mut req = mc_mobilecoind_api::PayAddressCodeRequest::new();
     req.set_sender_monitor_id(monitor_id);
     req.set_sender_subaddress_index(subaddress_index);
-    req.set_b58_code(transfer.receiver_b58_address_code.clone());
-    req.set_amount(amount);
+    req.set_receiver_b58_code(transfer.receiver_b58_address_code.clone());
+    req.set_value(amount);
     req.set_max_input_utxo_value(max_input_utxo_value);
 
     let resp = state
